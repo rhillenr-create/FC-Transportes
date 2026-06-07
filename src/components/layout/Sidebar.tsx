@@ -2,7 +2,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
 import { 
   LayoutDashboard, 
@@ -20,6 +20,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
+import { signOut } from "firebase/auth"
+import { useAuth } from "@/firebase"
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -40,7 +42,18 @@ interface SidebarProps {
 
 export function Sidebar({ isMobile }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const auth = useAuth()
   const logoImage = PlaceHolderImages.find(img => img.id === 'app-logo')
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+      router.push("/")
+    } catch (error) {
+      console.error("Erro ao sair do sistema:", error)
+    }
+  }
 
   return (
     <div className={cn(
@@ -95,7 +108,10 @@ export function Sidebar({ isMobile }: SidebarProps) {
           <Settings className="mr-4 h-4 w-4 lg:h-5 lg:w-5" />
           Configurações
         </Link>
-        <button className="flex items-center w-full px-4 py-3 text-[11px] lg:text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-destructive transition-all rounded-xl hover:bg-destructive/10">
+        <button 
+          onClick={handleLogout}
+          className="flex items-center w-full px-4 py-3 text-[11px] lg:text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-destructive transition-all rounded-xl hover:bg-destructive/10"
+        >
           <LogOut className="mr-4 h-4 w-4 lg:h-5 lg:w-5" />
           Sair do Sistema
         </button>
