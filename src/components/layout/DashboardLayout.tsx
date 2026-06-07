@@ -91,7 +91,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             
             <div className="flex items-center gap-3 pl-2 group cursor-pointer p-1 rounded-2xl hover:bg-white/5 transition-all">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-white group-hover:text-primary transition-colors">Admin Operacional</p>
+                <p className="text-sm font-bold text-white group-hover:text-primary transition-colors">CRISAIO ALMEIDA</p>
                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">FC Transportes</p>
               </div>
               <div className="relative h-10 w-10 lg:h-14 lg:w-14 rounded-xl lg:rounded-[1.2rem] overflow-hidden border-2 border-white/10 p-0.5 md:p-1 bg-white/5 group-hover:border-primary/50 transition-all">
