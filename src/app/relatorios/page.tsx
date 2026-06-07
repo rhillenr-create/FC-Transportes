@@ -15,6 +15,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts'
+import { useToast } from "@/hooks/use-toast"
 
 const data = [
   { name: 'Jan', viagens: 45, custos: 2400 },
@@ -25,6 +26,15 @@ const data = [
 ]
 
 export default function ReportsPage() {
+  const { toast } = useToast()
+
+  const handleExportPDF = () => {
+    toast({
+      title: "Gerando PDF",
+      description: "O relatório gerencial detalhado está sendo compilado. O download começará em instantes.",
+    })
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -34,11 +44,14 @@ export default function ReportsPage() {
             <p className="text-muted-foreground">Análise profunda da performance e custos da frota.</p>
           </div>
           <div className="flex gap-4">
-            <Button variant="outline" className="border-white/10 bg-white/5">
+            <Button variant="outline" className="border-white/10 bg-white/5 h-12 rounded-xl">
               <Filter className="h-4 w-4 mr-2" />
               FILTRAR
             </Button>
-            <Button className="neon-glow font-bold">
+            <Button 
+              onClick={handleExportPDF}
+              className="neon-glow font-bold h-12 px-8 rounded-xl bg-primary text-primary-foreground"
+            >
               <FileDown className="h-4 w-4 mr-2" />
               EXPORTAR PDF
             </Button>
@@ -46,7 +59,7 @@ export default function ReportsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-card border-white/5">
+          <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Produtividade</CardTitle>
               <TrendingUp className="h-4 w-4 text-primary" />
@@ -56,7 +69,7 @@ export default function ReportsPage() {
               <p className="text-[10px] text-primary mt-1 font-bold">+5.2% em relação ao mês anterior</p>
             </CardContent>
           </Card>
-          <Card className="bg-card border-white/5">
+          <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Custo por KM</CardTitle>
               <BarChart3 className="h-4 w-4 text-accent" />
@@ -66,7 +79,7 @@ export default function ReportsPage() {
               <p className="text-[10px] text-red-500 mt-1 font-bold">+2.1% devido à alta do diesel</p>
             </CardContent>
           </Card>
-          <Card className="bg-card border-white/5">
+          <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Tempo em Trânsito</CardTitle>
               <Calendar className="h-4 w-4 text-blue-500" />
@@ -78,7 +91,7 @@ export default function ReportsPage() {
           </Card>
         </div>
 
-        <Card className="bg-card border-white/5 p-6">
+        <Card className="glass-card p-6 rounded-[2.5rem]">
           <CardHeader>
             <CardTitle className="text-xl font-headline font-bold">Evolução Operacional</CardTitle>
           </CardHeader>

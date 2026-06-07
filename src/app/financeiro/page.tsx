@@ -10,7 +10,8 @@ import {
   TrendingDown, 
   Wallet,
   Plus,
-  ChevronRight
+  ChevronRight,
+  FileDown
 } from "lucide-react"
 import { 
   ResponsiveContainer, 
@@ -38,6 +39,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 const dataPie = [
   { name: 'Combustível', value: 45 },
@@ -57,10 +59,22 @@ const cashflowData = [
 
 export default function FinancePage() {
   const [isOpen, setIsOpen] = useState(false)
+  const { toast } = useToast()
 
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault()
     setIsOpen(false)
+    toast({
+      title: "Transação Registrada",
+      description: "A nova transação foi adicionada ao fluxo de caixa com sucesso.",
+    })
+  }
+
+  const handleExportReports = () => {
+    toast({
+      title: "Gerando Relatório",
+      description: "O relatório financeiro consolidado está sendo preparado para download.",
+    })
   }
 
   return (
@@ -72,7 +86,14 @@ export default function FinancePage() {
             <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Fluxo de caixa e inteligência de rentabilidade</p>
           </div>
           <div className="flex gap-4">
-             <button className="px-6 h-12 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all">Exportar Relatórios</button>
+             <Button 
+               variant="outline" 
+               onClick={handleExportReports}
+               className="px-6 h-12 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all"
+             >
+               <FileDown className="w-4 h-4 mr-2" />
+               Exportar Relatórios
+             </Button>
              
              <Dialog open={isOpen} onOpenChange={setIsOpen}>
                <DialogTrigger asChild>
