@@ -1,3 +1,4 @@
+
 "use client"
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
@@ -22,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { cn } from "@/lib/utils"
 
 const trips = [
   { id: 1, origin: "Cuiabá, MT", dest: "Santos, SP", client: "Agro S/A", driver: "João Silva", truck: "ABC-1234", freight: "R$ 18.500", status: "Em Rota", date: "15/05" },

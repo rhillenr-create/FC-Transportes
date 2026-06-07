@@ -8,17 +8,35 @@ import { Mail, Lock, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { signInWithEmailAndPassword } from "firebase/auth"
+import { useAuth } from "@/firebase"
+import { useToast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
   const router = useRouter()
+  const auth = useAuth()
+  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!auth) return
+
     setIsLoading(true)
-    setTimeout(() => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password)
       router.push("/dashboard")
-    }, 1500)
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro no login",
+        description: "E-mail ou senha incorretos. Verifique suas credenciais."
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -38,12 +56,6 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-card border border-white/5 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-8 opacity-5">
-             <div className="w-32 h-32 relative rotate-12">
-               <Image src="/logo.png" alt="" fill className="object-contain" />
-             </div>
-          </div>
-          
           <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
             <div className="space-y-2">
               <Label htmlFor="email">E-mail Corporativo</Label>
@@ -54,6 +66,8 @@ export default function LoginPage() {
                   type="email" 
                   placeholder="seu@email.com" 
                   className="pl-10 bg-white/5 border-white/10"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required 
                 />
               </div>
@@ -71,6 +85,8 @@ export default function LoginPage() {
                   type="password" 
                   placeholder="••••••••" 
                   className="pl-10 bg-white/5 border-white/10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required 
                 />
               </div>

@@ -1,9 +1,10 @@
+
 "use client"
 
 import { useState } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { 
   ClipboardCheck, 
   Camera, 
@@ -17,6 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { intelligentMaintenanceDiagnostics } from "@/ai/flows/intelligent-maintenance-diagnostics"
+import { cn } from "@/lib/utils"
 
 const checklistItems = [
   { id: 'pneus', label: 'Pneus e Calibragem', category: 'Mecânica' },
@@ -43,7 +45,6 @@ export default function ChecklistPage() {
   const handleFinalize = async () => {
     setIsAnalyzing(true)
     
-    // Create a detailed log for the AI
     const log = checklistItems.map(item => {
       const status = results[item.id] || 'N/A'
       const obs = observations[item.id] ? ` (Obs: ${observations[item.id]})` : ''

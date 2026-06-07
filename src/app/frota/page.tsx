@@ -9,8 +9,7 @@ import {
   Edit2, 
   Trash2, 
   Eye, 
-  Truck,
-  MoreVertical
+  Truck
 } from "lucide-react"
 import {
   Table,
@@ -20,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { cn } from "@/lib/utils"
 
 const trucks = [
   { id: 1, plate: "ABC-1234", model: "Volvo FH 540", year: 2022, km: "142.000", avg: "2.8", status: "Em Viagem" },
@@ -74,7 +74,7 @@ export default function FleetPage() {
         </div>
 
         <div className="bg-card border border-white/5 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-white/5 flex items-center justify-between">
+          <div className="p-6 border-b border-white/5">
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar por placa ou modelo..." className="pl-10 bg-white/5" />
@@ -82,7 +82,7 @@ export default function FleetPage() {
           </div>
           <Table>
             <TableHeader className="bg-white/5">
-              <TableRow className="border-white/5">
+              <TableRow className="border-white/5 hover:bg-transparent">
                 <TableHead className="text-xs uppercase font-bold text-muted-foreground">Placa</TableHead>
                 <TableHead className="text-xs uppercase font-bold text-muted-foreground">Modelo</TableHead>
                 <TableHead className="text-xs uppercase font-bold text-muted-foreground">Ano</TableHead>
