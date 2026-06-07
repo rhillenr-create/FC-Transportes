@@ -3,10 +3,11 @@
 
 import { useState } from "react"
 import { Sidebar } from "./Sidebar"
-import { Bell, User, Search, Calendar, ChevronDown, Menu, X } from "lucide-react"
+import { Bell, User, Search, Calendar, ChevronDown, Menu, X, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -57,10 +58,33 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <Search className="h-5 w-5" />
               </Button>
               
-              <button className="h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-muted-foreground hover:text-primary transition-all relative group">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-2.5 right-2.5 h-2 w-2 bg-primary rounded-full border-2 border-[#0a0c0b] neon-glow"></span>
-              </button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-muted-foreground hover:text-primary transition-all relative group">
+                    <Bell className="h-5 w-5" />
+                    <span className="absolute top-2.5 right-2.5 h-2 w-2 bg-primary rounded-full border-2 border-[#0a0c0b] neon-glow"></span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 bg-card border-white/10 p-0 rounded-2xl overflow-hidden" align="end" sideOffset={12}>
+                  <div className="p-4 border-b border-white/5 bg-white/5">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-primary">Notificações</h4>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    <div className="p-4 flex gap-3 hover:bg-white/5 transition-colors border-b border-white/5 cursor-pointer">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Info className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-white">Sistema Pronto</p>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">O sistema FC Frota está configurado e pronto para uso operacional.</p>
+                      </div>
+                    </div>
+                    <div className="p-8 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Sem novos alertas</p>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             
             <div className="h-8 w-[1px] bg-white/10 mx-1 md:mx-2" />
