@@ -72,13 +72,14 @@ export default function FinancePage() {
 
   // Fetch Transactions
   const financeQuery = useMemoFirebase(() => {
+    if (!db) return null
     return query(collection(db, "financial_entries"), orderBy("date", "desc"))
   }, [db])
   const { data: transactions, loading } = useCollection(financeQuery)
 
   // Calculations
   const stats = useMemo(() => {
-    if (!transactions) return { revenue: 0, expenses: 0, balance: 0, margin: 0, categoryData: [] }
+    if (!transactions || !mounted) return { revenue: 0, expenses: 0, balance: 0, margin: 0, categoryData: [] }
     
     let revenue = 0
     let expenses = 0
@@ -106,7 +107,7 @@ export default function FinancePage() {
     }))
 
     return { revenue, expenses, balance, margin, categoryData }
-  }, [transactions])
+  }, [transactions, mounted])
 
   const formatCurrency = (val: number) => {
     if (!mounted) return "R$ 0,00"
@@ -123,8 +124,11 @@ export default function FinancePage() {
     setIsSubmitting(true)
 
     const payload = {
-      ...formData,
-      value: Number(formData.value.replace(/[^0-9,.-]+/g, "").replace(",", ".")),
+      description: formData.description,
+      type: formData.type,
+      value: Number(formData.value),
+      category: formData.category,
+      date: formData.date,
       createdAt: serverTimestamp()
     }
 
@@ -286,7 +290,7 @@ export default function FinancePage() {
             { label: "Receitas Totais", value: formatCurrency(stats.revenue), icon: TrendingUp, color: "text-primary", bg: "bg-primary/10", trend: "Atual" },
             { label: "Despesas Operacionais", value: formatCurrency(stats.expenses), icon: TrendingDown, color: "text-red-500", bg: "bg-red-500/10", trend: "Atual" },
             { label: "Saldo em Caixa", value: formatCurrency(stats.balance), icon: Wallet, color: "text-accent", bg: "bg-accent/10", trend: "Saldo" },
-            { label: "Margem Líquida", value: mounted ? `${stats.margin.toFixed(1)}%` : "0.0%", icon: DollarSign, color: "text-blue-400", bg: "bg-blue-400/10", trend: "Rent." },
+            { label: "Margem Líquida", value: `${stats.margin.toFixed(1)}%`, icon: DollarSign, color: "text-blue-400", bg: "bg-blue-400/10", trend: "Rent." },
           ].map((stat, i) => (
             <div key={i} className="glass-card rounded-[2rem] p-8 group hover:neon-border transition-all">
               <div className="flex items-center gap-4 mb-4">
@@ -314,7 +318,7 @@ export default function FinancePage() {
               </div>
             </CardHeader>
             <CardContent className="h-[350px] p-0">
-              {stats.categoryData.length > 0 ? (
+              {mounted && stats.categoryData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
