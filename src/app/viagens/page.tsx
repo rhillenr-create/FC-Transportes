@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -19,7 +18,8 @@ import {
   Eye,
   Edit,
   Trash2,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from "lucide-react"
 import {
   Table,
@@ -49,32 +49,127 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
-
-const initialTrips = [
-  { id: 1, origin: "Cuiabá, MT", dest: "Santos, SP", client: "Agro S/A", driver: "João Silva", truck: "ABC-1234", freight: "R$ 18.500", status: "Em Rota", date: "15/05", progress: 65 },
-  { id: 2, origin: "Curitiba, PR", dest: "Belém, PA", client: "TransLog", driver: "Marcos Paulo", truck: "XYZ-9876", freight: "R$ 24.200", status: "Concluída", date: "12/05", progress: 100 },
-  { id: 3, origin: "Goiânia, GO", dest: "Recife, PE", client: "Mundo Cargo", driver: "Roberto Souza", truck: "KLT-4433", freight: "R$ 15.900", status: "Pendente", date: "18/05", progress: 0 },
-]
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc } from "firebase/firestore"
+import { errorEmitter } from "@/firebase/error-emitter"
+import { FirestorePermissionError } from "@/firebase/errors"
 
 export default function TripsPage() {
-  const [isOpen, setIsOpen] = useState(false)
+  const db = useFirestore()
   const { toast } = useToast()
-  const [trips, setTrips] = useState(initialTrips)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Estado do formulário
+  const [formData, setFormData] = useState({
+    origin: "",
+    destination: "",
+    client: "",
+    freight: "",
+    driver: "",
+    truck: ""
+  })
+
+  // Consulta real ao Firestore
+  const tripsQuery = useMemoFirebase(() => {
+    return query(collection(db, "trips"), orderBy("createdAt", "desc"))
+  }, [db])
+
+  const { data: trips, loading } = useCollection(tripsQuery)
 
   const handleProgramTrip = (e: React.FormEvent) => {
     e.preventDefault()
-    setIsOpen(false)
-    toast({
-      title: "Viagem Programada",
-      description: "A nova rota foi salva e o motorista será notificado.",
-    })
+    setIsSubmitting(true)
+
+    const tripData = {
+      ...formData,
+      status: "Pendente",
+      progress: 0,
+      createdAt: serverTimestamp()
+    }
+
+    addDoc(collection(db, "trips"), tripData)
+      .then(() => {
+        setIsOpen(false)
+        setFormData({
+          origin: "",
+          destination: "",
+          client: "",
+          freight: "",
+          driver: "",
+          truck: ""
+        })
+        toast({
+          title: "Viagem Programada",
+          description: `Rota de ${formData.origin} para ${formData.destination} salva com sucesso.`,
+        })
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: "trips",
+          operation: "create",
+          requestResourceData: tripData
+        })
+        errorEmitter.emit("permission-error", permissionError)
+      })
+      .finally(() => setIsSubmitting(false))
   }
 
-  const handleAction = (action: string, id: number) => {
-    toast({
-      title: action,
-      description: `Ação realizada com sucesso para a viagem #${id}.`,
+  const handleDeleteTrip = (id: string) => {
+    deleteDoc(doc(db, "trips", id))
+      .then(() => {
+        toast({
+          title: "Viagem Excluída",
+          description: "O registro foi removido do sistema.",
+        })
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: `trips/${id}`,
+          operation: "delete"
+        })
+        errorEmitter.emit("permission-error", permissionError)
+      })
+  }
+
+  const handleFinishTrip = (id: string) => {
+    updateDoc(doc(db, "trips", id), {
+      status: "Concluída",
+      progress: 100
     })
+      .then(() => {
+        toast({
+          title: "Viagem Finalizada",
+          description: "O status foi atualizado para Concluída.",
+        })
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: `trips/${id}`,
+          operation: "update"
+        })
+        errorEmitter.emit("permission-error", permissionError)
+      })
+  }
+
+  const handleStartTrip = (id: string) => {
+    updateDoc(doc(db, "trips", id), {
+      status: "Em Rota",
+      progress: 10
+    })
+      .then(() => {
+        toast({
+          title: "Viagem Iniciada",
+          description: "O motorista iniciou o trajeto.",
+        })
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: `trips/${id}`,
+          operation: "update"
+        })
+        errorEmitter.emit("permission-error", permissionError)
+      })
   }
 
   return (
@@ -88,7 +183,7 @@ export default function TripsPage() {
           
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-              <Button className="neon-glow font-bold h-12 px-8 rounded-xl bg-primary text-primary-foreground">
+              <Button className="neon-glow font-bold h-12 px-8 rounded-xl bg-primary text-primary-foreground hover:scale-105 transition-all">
                 <Plus className="w-5 h-5 mr-2" />
                 PROGRAMAR VIAGEM
               </Button>
@@ -101,53 +196,84 @@ export default function TripsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="origin">Origem</Label>
-                    <Input id="origin" placeholder="Cidade, UF" className="bg-white/5 border-white/10" required />
+                    <Input 
+                      id="origin" 
+                      placeholder="Cidade, UF" 
+                      className="bg-white/5 border-white/10" 
+                      value={formData.origin}
+                      onChange={(e) => setFormData({...formData, origin: e.target.value})}
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="dest">Destino</Label>
-                    <Input id="dest" placeholder="Cidade, UF" className="bg-white/5 border-white/10" required />
+                    <Input 
+                      id="dest" 
+                      placeholder="Cidade, UF" 
+                      className="bg-white/5 border-white/10" 
+                      value={formData.destination}
+                      onChange={(e) => setFormData({...formData, destination: e.target.value})}
+                      required 
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="client">Cliente</Label>
-                    <Input id="client" placeholder="Nome do Cliente/Empresa" className="bg-white/5 border-white/10" required />
+                    <Input 
+                      id="client" 
+                      placeholder="Nome do Cliente" 
+                      className="bg-white/5 border-white/10" 
+                      value={formData.client}
+                      onChange={(e) => setFormData({...formData, client: e.target.value})}
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="freight">Valor do Frete</Label>
-                    <Input id="freight" placeholder="R$ 0,00" className="bg-white/5 border-white/10" required />
+                    <Input 
+                      id="freight" 
+                      placeholder="R$ 15.000,00" 
+                      className="bg-white/5 border-white/10" 
+                      value={formData.freight}
+                      onChange={(e) => setFormData({...formData, freight: e.target.value})}
+                      required 
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Motorista</Label>
-                    <Select>
+                    <Select value={formData.driver} onValueChange={(v) => setFormData({...formData, driver: v})}>
                       <SelectTrigger className="bg-white/5 border-white/10 text-white">
                         <SelectValue placeholder="Selecionar Motorista" />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-white/10 text-white">
-                        <SelectItem value="joao">João Silva</SelectItem>
-                        <SelectItem value="pedro">Pedro Santos</SelectItem>
-                        <SelectItem value="marcos">Marcos Paulo</SelectItem>
+                        <SelectItem value="João Silva">João Silva</SelectItem>
+                        <SelectItem value="Pedro Santos">Pedro Santos</SelectItem>
+                        <SelectItem value="Marcos Paulo">Marcos Paulo</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Veículo</Label>
-                    <Select>
+                    <Select value={formData.truck} onValueChange={(v) => setFormData({...formData, truck: v})}>
                       <SelectTrigger className="bg-white/5 border-white/10 text-white">
                         <SelectValue placeholder="Selecionar Caminhão" />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-white/10 text-white">
-                        <SelectItem value="abc">Volvo FH 540 (ABC-1234)</SelectItem>
-                        <SelectItem value="xyz">Scania R 450 (XYZ-9876)</SelectItem>
+                        <SelectItem value="ABC-1234">Volvo FH 540 (ABC-1234)</SelectItem>
+                        <SelectItem value="XYZ-9876">Scania R 450 (XYZ-9876)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <DialogFooter className="pt-4">
                   <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-white">Cancelar</Button>
-                  <Button type="submit" className="bg-primary text-primary-foreground neon-glow font-bold px-8">SALVAR E INICIAR</Button>
+                  <Button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground neon-glow font-bold px-8">
+                    {isSubmitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+                    SALVAR E PROGRAMAR
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -156,10 +282,10 @@ export default function TripsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[
-            { label: "Viagens em Rota", value: "06", icon: Navigation, color: "text-primary", bg: "bg-primary/10" },
-            { label: "Mês (Concluídas)", value: "42", icon: CheckCircle2, color: "text-accent", bg: "bg-accent/10" },
-            { label: "Aguardando Início", value: "03", icon: Clock, color: "text-blue-500", bg: "bg-blue-500/10" },
-            { label: "Faturamento Mensal", value: "R$ 482k", icon: Route, color: "text-emerald-400", bg: "bg-emerald-400/10" },
+            { label: "Viagens em Rota", value: trips?.filter(t => t.status === 'Em Rota').length || 0, icon: Navigation, color: "text-primary", bg: "bg-primary/10" },
+            { label: "Mês (Concluídas)", value: trips?.filter(t => t.status === 'Concluída').length || 0, icon: CheckCircle2, color: "text-accent", bg: "bg-accent/10" },
+            { label: "Aguardando Início", value: trips?.filter(t => t.status === 'Pendente').length || 0, icon: Clock, color: "text-blue-500", bg: "bg-blue-500/10" },
+            { label: "Total de Viagens", value: trips?.length || 0, icon: Route, color: "text-emerald-400", bg: "bg-emerald-400/10" },
           ].map((stat, i) => (
             <div key={i} className="glass-card rounded-[2rem] p-8 group hover:neon-border transition-all">
               <div className="flex items-center gap-5">
@@ -196,7 +322,20 @@ export default function TripsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {trips.map((trip) => (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                      <Loader2 className="animate-spin h-8 w-8 mx-auto mb-2 opacity-20" />
+                      Carregando logística...
+                    </TableCell>
+                  </TableRow>
+                ) : trips?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                      Nenhuma viagem programada no momento.
+                    </TableCell>
+                  </TableRow>
+                ) : trips?.map((trip: any) => (
                   <TableRow key={trip.id} className="border-white/5 table-row-hover h-24">
                     <TableCell className="pl-8">
                       <span className={cn(
@@ -212,7 +351,7 @@ export default function TripsPage() {
                       <div className="flex items-center gap-4">
                         <div className="space-y-1">
                           <p className="text-sm font-bold text-white flex items-center gap-2"><MapPin className="h-3 w-3 text-red-500" /> {trip.origin}</p>
-                          <p className="text-sm font-bold text-white flex items-center gap-2"><MapPin className="h-3 w-3 text-primary" /> {trip.dest}</p>
+                          <p className="text-sm font-bold text-white flex items-center gap-2"><MapPin className="h-3 w-3 text-primary" /> {trip.destination}</p>
                         </div>
                         <ArrowRight className="h-4 w-4 text-muted-foreground opacity-30" />
                         <span className="text-[10px] font-bold text-muted-foreground uppercase">{trip.client}</span>
@@ -241,7 +380,9 @@ export default function TripsPage() {
                     <TableCell>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        <span className="text-xs font-medium tracking-tight">{trip.date}</span>
+                        <span className="text-xs font-medium tracking-tight">
+                          {trip.createdAt?.toDate ? trip.createdAt.toDate().toLocaleDateString() : 'Recent'}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell className="font-headline font-bold text-lg text-white">{trip.freight}</TableCell>
@@ -255,17 +396,14 @@ export default function TripsPage() {
                         <DropdownMenuContent align="end" className="bg-card border-white/10 text-white w-48 rounded-xl">
                           <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Opções</DropdownMenuLabel>
                           <DropdownMenuSeparator className="bg-white/5" />
-                          <DropdownMenuItem onClick={() => handleAction("Visualizando Detalhes", trip.id)} className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5">
-                            <Eye className="h-4 w-4 text-primary" /> Detalhes
+                          <DropdownMenuItem onClick={() => handleStartTrip(trip.id)} className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5">
+                            <Navigation className="h-4 w-4 text-primary" /> Iniciar Rota
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAction("Editando Viagem", trip.id)} className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5">
-                            <Edit className="h-4 w-4 text-blue-400" /> Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAction("Finalizando Viagem", trip.id)} className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5">
+                          <DropdownMenuItem onClick={() => handleFinishTrip(trip.id)} className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5">
                             <CheckCircle className="h-4 w-4 text-accent" /> Finalizar
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="bg-white/5" />
-                          <DropdownMenuItem onClick={() => handleAction("Excluindo Viagem", trip.id)} className="gap-2 cursor-pointer text-red-500 hover:bg-red-500/10 focus:bg-red-500/10">
+                          <DropdownMenuItem onClick={() => handleDeleteTrip(trip.id)} className="gap-2 cursor-pointer text-red-500 hover:bg-red-500/10 focus:bg-red-500/10">
                             <Trash2 className="h-4 w-4" /> Excluir
                           </DropdownMenuItem>
                         </DropdownMenuContent>

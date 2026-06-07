@@ -26,6 +26,23 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["plate", "model"]
+    },
+    "Trip": {
+      "title": "Viagem / Frete",
+      "description": "Registro de operação logística e transporte.",
+      "type": "object",
+      "properties": {
+        "origin": { "type": "string", "description": "Cidade de origem" },
+        "destination": { "type": "string", "description": "Cidade de destino" },
+        "client": { "type": "string", "description": "Nome do cliente" },
+        "driver": { "type": "string", "description": "Nome do motorista" },
+        "truck": { "type": "string", "description": "Placa do caminhão" },
+        "freight": { "type": "string", "description": "Valor do frete formatado" },
+        "status": { "type": "string", "enum": ["Pendente", "Em Rota", "Concluída"] },
+        "progress": { "type": "number", "description": "Percentual de progresso (0-100)" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["origin", "destination", "client", "driver", "truck"]
     }
   },
   "auth": {
@@ -39,6 +56,10 @@
     "/trucks/{truckId}": {
       "schema": "#/backend/entities/Truck",
       "description": "Cadastro central de veículos da frota"
+    },
+    "/trips/{tripId}": {
+      "schema": "#/backend/entities/Trip",
+      "description": "Gestão de viagens e logística"
     }
   }
 }
