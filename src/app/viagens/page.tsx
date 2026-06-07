@@ -15,7 +15,11 @@ import {
   CheckCircle2,
   Clock,
   Navigation,
-  ArrowRight
+  ArrowRight,
+  Eye,
+  Edit,
+  Trash2,
+  CheckCircle
 } from "lucide-react"
 import {
   Table,
@@ -33,11 +37,20 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
-const trips = [
+const initialTrips = [
   { id: 1, origin: "Cuiabá, MT", dest: "Santos, SP", client: "Agro S/A", driver: "João Silva", truck: "ABC-1234", freight: "R$ 18.500", status: "Em Rota", date: "15/05", progress: 65 },
   { id: 2, origin: "Curitiba, PR", dest: "Belém, PA", client: "TransLog", driver: "Marcos Paulo", truck: "XYZ-9876", freight: "R$ 24.200", status: "Concluída", date: "12/05", progress: 100 },
   { id: 3, origin: "Goiânia, GO", dest: "Recife, PE", client: "Mundo Cargo", driver: "Roberto Souza", truck: "KLT-4433", freight: "R$ 15.900", status: "Pendente", date: "18/05", progress: 0 },
@@ -45,11 +58,23 @@ const trips = [
 
 export default function TripsPage() {
   const [isOpen, setIsOpen] = useState(false)
+  const { toast } = useToast()
+  const [trips, setTrips] = useState(initialTrips)
 
   const handleProgramTrip = (e: React.FormEvent) => {
     e.preventDefault()
-    // Simulação de salvamento
     setIsOpen(false)
+    toast({
+      title: "Viagem Programada",
+      description: "A nova rota foi salva e o motorista será notificado.",
+    })
+  }
+
+  const handleAction = (action: string, id: number) => {
+    toast({
+      title: action,
+      description: `Ação realizada com sucesso para a viagem #${id}.`,
+    })
   }
 
   return (
@@ -221,7 +246,30 @@ export default function TripsPage() {
                     </TableCell>
                     <TableCell className="font-headline font-bold text-lg text-white">{trip.freight}</TableCell>
                     <TableCell className="text-right pr-8">
-                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/10 transition-colors"><MoreVertical className="h-5 w-5" /></Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/10 transition-colors">
+                            <MoreVertical className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-card border-white/10 text-white w-48 rounded-xl">
+                          <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Opções</DropdownMenuLabel>
+                          <DropdownMenuSeparator className="bg-white/5" />
+                          <DropdownMenuItem onClick={() => handleAction("Visualizando Detalhes", trip.id)} className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5">
+                            <Eye className="h-4 w-4 text-primary" /> Detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAction("Editando Viagem", trip.id)} className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5">
+                            <Edit className="h-4 w-4 text-blue-400" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAction("Finalizando Viagem", trip.id)} className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5">
+                            <CheckCircle className="h-4 w-4 text-accent" /> Finalizar
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="bg-white/5" />
+                          <DropdownMenuItem onClick={() => handleAction("Excluindo Viagem", trip.id)} className="gap-2 cursor-pointer text-red-500 hover:bg-red-500/10 focus:bg-red-500/10">
+                            <Trash2 className="h-4 w-4" /> Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
