@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -40,7 +41,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, addDoc, serverTimestamp, deleteDoc, doc, query, orderBy } from "firebase/firestore"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
@@ -48,11 +49,17 @@ import { useToast } from "@/hooks/use-toast"
 
 export default function FleetPage() {
   const db = useFirestore()
+  const { user } = useUser()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [truckToDelete, setTruckToDelete] = useState<{id: string, plate: string} | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Estados do formulário
   const [formData, setFormData] = useState({
@@ -64,10 +71,11 @@ export default function FleetPage() {
     type: "heavy"
   })
 
-  // Consulta real ao Firestore
+  // Consulta real ao Firestore - Estabilizada com user
   const trucksQuery = useMemoFirebase(() => {
+    if (!db || !user) return null
     return query(collection(db, "trucks"), orderBy("createdAt", "desc"))
-  }, [db])
+  }, [db, user])
 
   const { data: trucks, loading } = useCollection(trucksQuery)
 
@@ -135,6 +143,8 @@ export default function FleetPage() {
         setTruckToDelete(null)
       })
   }
+
+  if (!mounted) return null
 
   return (
     <DashboardLayout>
@@ -313,7 +323,7 @@ export default function FleetPage() {
                       <span className={cn(
                         "px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest",
                         truck.status === "Disponível" ? "bg-primary/10 text-primary border border-primary/20" : 
-                        truck.status === "Em Viagem" ? "bg-accent/10 text-accent border border-accent/20" : 
+                        truck.status === "Em Viagem" ? "bg-accent/10 text-accent border-accent/20" : 
                         "bg-red-500/10 text-red-500 border border-red-500/20"
                       )}>
                         {truck.status}

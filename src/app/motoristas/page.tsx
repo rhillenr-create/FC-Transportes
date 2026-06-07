@@ -43,7 +43,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { errorEmitter } from "@/firebase/error-emitter"
@@ -52,6 +52,7 @@ import { cn } from "@/lib/utils"
 
 export default function DriversPage() {
   const db = useFirestore()
+  const { user } = useUser()
   const { toast } = useToast()
   const [mounted, setMounted] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
@@ -74,10 +75,11 @@ export default function DriversPage() {
     score: 5.0
   })
 
-  // Fetch Drivers
+  // Fetch Drivers - Dependente do usuário autenticado para evitar erros de permissão
   const driversQuery = useMemoFirebase(() => {
+    if (!db || !user) return null
     return query(collection(db, "drivers"), orderBy("createdAt", "desc"))
-  }, [db])
+  }, [db, user])
   const { data: drivers, loading } = useCollection(driversQuery)
 
   const resetForm = () => {
