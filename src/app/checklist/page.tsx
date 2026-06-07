@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,13 +13,16 @@ import {
   Loader2,
   Wrench,
   Stethoscope,
-  ChevronLeft
+  ChevronLeft,
+  X,
+  Image as ImageIcon
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { intelligentMaintenanceDiagnostics } from "@/ai/flows/intelligent-maintenance-diagnostics"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 const checklistItems = [
   { id: 'pneus', label: 'Pneus e Calibragem', category: 'Mecânica' },
@@ -36,11 +39,44 @@ export default function ChecklistPage() {
   const [step, setStep] = useState<'start' | 'form' | 'result'>('start')
   const [results, setResults] = useState<Record<string, 'ok' | 'issue'>>({})
   const [observations, setObservations] = useState<Record<string, string>>({})
+  const [photos, setPhotos] = useState<Record<string, string[]>>({})
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [aiAnalysis, setAiAnalysis] = useState<any>(null)
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const handleStatusChange = (id: string, status: 'ok' | 'issue') => {
     setResults(prev => ({ ...prev, [id]: status }))
+  }
+
+  const handleFileChange = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: "destructive",
+        title: "Erro no arquivo",
+        description: "Por favor, selecione apenas arquivos de imagem."
+      })
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUri = event.target?.result as string
+      setPhotos(prev => ({
+        ...prev,
+        [id]: [...(prev[id] || []), dataUri]
+      }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removePhoto = (id: string, index: number) => {
+    setPhotos(prev => ({
+      ...prev,
+      [id]: prev[id].filter((_, i) => i !== index)
+    }))
   }
 
   const handleFinalize = async () => {
@@ -52,9 +88,13 @@ export default function ChecklistPage() {
       return `${item.label}: ${status}${obs}`
     }).join('\n')
 
+    // Coleta todas as fotos de todos os itens
+    const allPhotoUris = Object.values(photos).flat()
+
     try {
       const diagnosis = await intelligentMaintenanceDiagnostics({
-        checklistLog: log
+        checklistLog: log,
+        photoDataUris: allPhotoUris.length > 0 ? allPhotoUris : undefined
       })
       setAiAnalysis(diagnosis)
       setStep('result')
@@ -103,7 +143,13 @@ export default function ChecklistPage() {
               <Stethoscope className="text-primary h-7 w-7 md:h-8 md:w-8" />
               Diagnóstico IA
             </h2>
-            <Button variant="outline" className="w-full md:w-auto rounded-xl border-white/10" onClick={() => setStep('start')}>NOVA INSPEÇÃO</Button>
+            <Button variant="outline" className="w-full md:w-auto rounded-xl border-white/10" onClick={() => {
+              setStep('start')
+              setResults({})
+              setObservations({})
+              setPhotos({})
+              setAiAnalysis(null)
+            }}>NOVA INSPEÇÃO</Button>
           </div>
 
           <Card className="bg-card border-white/5 overflow-hidden rounded-[2.5rem]">
@@ -132,7 +178,7 @@ export default function ChecklistPage() {
                      <AlertCircle className="h-5 w-5" />
                      Insights
                    </h4>
-                   <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{aiAnalysis?.diagnosticInsights}</p>
+                   <p className="text-muted-foreground leading-relaxed text-sm md:text-base whitespace-pre-line">{aiAnalysis?.diagnosticInsights}</p>
                  </div>
 
                  <div className="space-y-4">
@@ -140,7 +186,7 @@ export default function ChecklistPage() {
                      <Wrench className="h-5 w-5" />
                      Manutenção
                    </h4>
-                   <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{aiAnalysis?.maintenanceRecommendations}</p>
+                   <p className="text-muted-foreground leading-relaxed text-sm md:text-base whitespace-pre-line">{aiAnalysis?.maintenanceRecommendations}</p>
                  </div>
                </div>
              </CardContent>
@@ -212,10 +258,39 @@ export default function ChecklistPage() {
                         onChange={(e) => setObservations(prev => ({ ...prev, [item.id]: e.target.value }))}
                       />
                     </div>
-                    <Button variant="secondary" className="w-full h-12 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest">
-                      <Camera className="w-4 h-4 mr-2" />
-                      ANEXAR EVIDÊNCIA FOTOGRÁFICA
-                    </Button>
+                    
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-4">
+                        {photos[item.id]?.map((uri, index) => (
+                          <div key={index} className="relative w-24 h-24 rounded-xl overflow-hidden border border-white/10 group/img">
+                            <Image src={uri} alt="Evidência" fill className="object-cover" />
+                            <button 
+                              onClick={() => removePhoto(item.id, index)}
+                              className="absolute top-1 right-1 bg-black/60 rounded-full p-1 opacity-0 group-hover/img:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        ref={el => { fileInputRefs.current[item.id] = el }}
+                        onChange={(e) => handleFileChange(item.id, e)}
+                      />
+                      
+                      <Button 
+                        variant="secondary" 
+                        className="w-full h-12 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-colors"
+                        onClick={() => fileInputRefs.current[item.id]?.click()}
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        ANEXAR EVIDÊNCIA FOTOGRÁFICA
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
