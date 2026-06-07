@@ -6,7 +6,7 @@ import { Sidebar } from "./Sidebar"
 import { Bell, User, Search, Calendar, ChevronDown, Menu, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -33,6 +33,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 border-none w-72 bg-transparent">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Menu de Navegação</SheetTitle>
+                  <SheetDescription>Acesse as funcionalidades do sistema FC Frota</SheetDescription>
+                </SheetHeader>
                 <Sidebar isMobile />
               </SheetContent>
             </Sheet>
