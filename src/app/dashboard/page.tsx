@@ -1,6 +1,7 @@
 
 "use client"
 
+import { useState, useEffect, useMemo } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,7 +13,8 @@ import {
   AlertTriangle,
   ClipboardCheck,
   ChevronRight,
-  ArrowUpRight
+  ArrowUpRight,
+  Loader2
 } from "lucide-react"
 import { 
   ResponsiveContainer, 
@@ -31,20 +33,69 @@ import {
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-
-// Dados vazios para testes reais do usuário
-const dataExpenses: any[] = []
-const dataProfit: any[] = []
-const dataFleet = [
-  { name: 'Ativo', value: 0, color: 'hsl(var(--primary))' },
-  { name: 'Manutenção', value: 0, color: '#CCFF00' },
-  { name: 'Inativo', value: 0, color: '#FF4444' },
-]
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection, query, orderBy, limit } from "firebase/firestore"
 
 export default function DashboardPage() {
+  const db = useFirestore()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Fetching Data
+  const trucksQuery = useMemoFirebase(() => collection(db, "trucks"), [db])
+  const { data: trucks, loading: loadingTrucks } = useCollection(trucksQuery)
+
+  const tripsQuery = useMemoFirebase(() => collection(db, "trips"), [db])
+  const { data: trips, loading: loadingTrips } = useCollection(tripsQuery)
+
+  const financeQuery = useMemoFirebase(() => collection(db, "financial_entries"), [db])
+  const { data: finance, loading: loadingFinance } = useCollection(financeQuery)
+
+  // Stats Calculation
+  const stats = useMemo(() => {
+    if (!mounted) return { tripsCount: 0, monthlyExpenses: 0, estimatedProfit: 0, activeTrips: 0, fleetData: [] }
+
+    const tripsCount = trips?.length || 0
+    const activeTrips = trips?.filter(t => t.status === 'Em Rota').length || 0
+    
+    let totalRevenue = 0
+    let totalExpenses = 0
+    
+    finance?.forEach(entry => {
+      const val = Number(entry.value) || 0
+      if (entry.type === 'entry') totalRevenue += val
+      else totalExpenses += val
+    })
+
+    const estimatedProfit = totalRevenue - totalExpenses
+
+    const statusCounts = {
+      'Disponível': trucks?.filter(t => t.status === 'Disponível').length || 0,
+      'Em Viagem': trucks?.filter(t => t.status === 'Em Viagem').length || 0,
+      'Manutenção': trucks?.filter(t => t.status === 'Manutenção').length || 0,
+    }
+
+    const fleetData = [
+      { name: 'Disponível', value: statusCounts['Disponível'], color: 'hsl(var(--primary))' },
+      { name: 'Em Viagem', value: statusCounts['Em Viagem'], color: 'hsl(var(--accent))' },
+      { name: 'Manutenção', value: statusCounts['Manutenção'], color: '#FF4444' },
+    ]
+
+    return { tripsCount, monthlyExpenses: totalExpenses, estimatedProfit, activeTrips, fleetData }
+  }, [trips, finance, trucks, mounted])
+
+  const formatCurrency = (val: number) => {
+    return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  }
+
+  if (!mounted) return null
+
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-[1600px] mx-auto overflow-x-hidden pb-10 md:pb-0">
+      <div className="space-y-6 max-w-[1600px] mx-auto overflow-x-hidden pb-10 md:pb-0 animate-in fade-in duration-500">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="text-3xl md:text-4xl font-headline font-bold text-white tracking-tight">Dashboard</h2>
@@ -63,10 +114,10 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {[
-            { label: "Total de Viagens", value: "0", sub: "aguardando dados", icon: Truck },
-            { label: "Gastos do Mês", value: "R$ 0", sub: "sem registros", icon: Fuel },
-            { label: "Lucro Estimado", value: "R$ 0", sub: "sem registros", icon: TrendingUp },
-            { label: "Próx. Revisão", value: "N/A", sub: "nenhuma", icon: Wrench, detail: "-" },
+            { label: "Total de Viagens", value: stats.tripsCount.toString(), sub: `${stats.activeTrips} em rota`, icon: Truck },
+            { label: "Gastos Totais", value: formatCurrency(stats.monthlyExpenses), sub: "registros financeiros", icon: Fuel },
+            { label: "Lucro Estimado", value: formatCurrency(stats.estimatedProfit), sub: "saldo em caixa", icon: TrendingUp },
+            { label: "Frota Ativa", value: trucks?.length.toString() || "0", sub: "veículos cadastrados", icon: Wrench },
           ].map((stat, i) => (
             <Card key={i} className="glass-card hover:neon-border transition-all duration-500 overflow-hidden">
               <CardContent className="p-5 md:p-6">
@@ -77,7 +128,7 @@ export default function DashboardPage() {
                   <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">{stat.label}</span>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-2xl md:text-3xl font-headline font-bold tracking-tight">{stat.value}</p>
+                  <p className="text-xl md:text-2xl font-headline font-bold tracking-tight">{stat.value}</p>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-muted-foreground uppercase tracking-tighter">{stat.sub}</span>
                   </div>
@@ -88,123 +139,149 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <Card className="lg:col-span-4 glass-card p-5 md:p-6">
+          <Card className="lg:col-span-8 glass-card p-5 md:p-6">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="font-headline font-bold text-base md:text-lg">Gastos Semestrais</h3>
-              <div className="bg-white/5 px-2 py-1 rounded text-[9px] font-bold uppercase">Aguardando dados</div>
+              <h3 className="font-headline font-bold text-base md:text-lg">Fluxo Financeiro Mensal</h3>
+              <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-bold uppercase text-primary">Tempo Real</div>
             </div>
-            <div className="h-[200px] md:h-[250px] w-full flex items-center justify-center text-muted-foreground text-xs uppercase font-bold">
-              Sem dados para exibir
+            <div className="h-[300px] w-full">
+              {finance && finance.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={finance.slice(-10).reverse()}>
+                    <defs>
+                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="date" stroke="#666" fontSize={10} tickFormatter={(val) => new Date(val).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})} />
+                    <YAxis stroke="#666" fontSize={10} tickFormatter={(val) => `R$ ${val}`} />
+                    <Tooltip 
+                      contentStyle={{ background: '#0a0c0b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                      itemStyle={{ color: 'hsl(var(--primary))' }}
+                    />
+                    <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-xs uppercase font-bold gap-2">
+                  <TrendingUp className="h-8 w-8 opacity-20" />
+                  Sem dados financeiros para exibir
+                </div>
+              )}
             </div>
           </Card>
 
-          <Card className="lg:col-span-3 glass-card p-5 md:p-6">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="font-headline font-bold text-base md:text-lg">Lucro x Viagem</h3>
-              <div className="bg-white/5 px-2 py-1 rounded text-[9px] font-bold uppercase">Zera</div>
+          <Card className="lg:col-span-4 glass-card p-5 md:p-6 flex flex-col items-center">
+            <h3 className="font-headline font-bold text-base md:text-lg mb-6 w-full text-left">Status da Frota</h3>
+            <div className="h-[250px] w-full relative">
+              {trucks && trucks.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={stats.fleetData}
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {stats.fleetData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ background: '#0a0c0b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                        itemStyle={{ color: '#fff' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <p className="text-3xl font-headline font-bold">{trucks.length}</p>
+                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">Veículos</p>
+                  </div>
+                </>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground text-xs uppercase font-bold">
+                  Nenhum veículo
+                </div>
+              )}
             </div>
-            <div className="h-[200px] md:h-[250px] w-full flex items-center justify-center text-muted-foreground text-xs uppercase font-bold">
-              Sem dados para exibir
-            </div>
-          </Card>
-
-          <Card className="lg:col-span-3 glass-card p-5 md:p-6">
-            <h3 className="font-headline font-bold text-base md:text-lg mb-6">Viagens Ativas</h3>
-            <div className="space-y-6 flex flex-col items-center justify-center h-[200px] text-muted-foreground text-xs uppercase font-bold">
-              Nenhuma viagem ativa
-            </div>
-            <Link href="/viagens" className="block text-center text-[10px] uppercase font-bold text-primary mt-6 hover:underline">
-              Gerenciar Logística
-            </Link>
-          </Card>
-
-          <Card className="lg:col-span-2 glass-card p-5 md:p-6 bg-red-500/5">
-            <h3 className="font-headline font-bold text-base md:text-lg mb-6 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-              Alertas
-            </h3>
-            <div className="space-y-4 flex flex-col items-center justify-center h-[200px] text-muted-foreground text-[10px] uppercase font-bold">
-              Nenhum alerta crítico
+            <div className="w-full grid grid-cols-2 gap-3 mt-6">
+               {stats.fleetData.map((item, i) => (
+                 <div key={i} className="flex items-center gap-2 bg-white/5 p-2 rounded-lg border border-white/5">
+                    <div className="h-2 w-2 rounded-full" style={{backgroundColor: item.color}} />
+                    <span className="text-[9px] text-muted-foreground font-bold uppercase">{item.name}: {item.value}</span>
+                 </div>
+               ))}
             </div>
           </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20 md:pb-0">
-          <Card className="lg:col-span-3 glass-card p-6 flex flex-col items-center justify-center text-center space-y-6">
-            <h3 className="font-headline font-bold text-lg w-full text-left uppercase tracking-widest text-primary/70">Checklist</h3>
-            <div className="relative w-28 h-28 flex items-center justify-center">
-               <div className="absolute inset-0 border-[3px] border-white/5 rounded-full" />
-               <div className="absolute inset-0 border-[3px] border-primary/20 rounded-full border-t-transparent" />
-               <ClipboardCheck className="h-10 w-10 text-muted-foreground" />
+          <Card className="lg:col-span-4 glass-card p-6">
+            <h3 className="font-headline font-bold text-lg mb-6 flex items-center gap-2">
+              <Route className="h-5 w-5 text-primary" />
+              Últimas Viagens
+            </h3>
+            <div className="space-y-4">
+              {loadingTrips ? (
+                <div className="flex justify-center py-10"><Loader2 className="animate-spin h-6 w-6 opacity-20" /></div>
+              ) : !trips || trips.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground text-xs uppercase font-bold">Nenhuma viagem</div>
+              ) : trips.slice(0, 3).map((trip: any) => (
+                <div key={trip.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 flex justify-between items-center group hover:border-primary/30 transition-all">
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-white">{trip.origin} → {trip.destination}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">{trip.driver} | {trip.truck}</p>
+                  </div>
+                  <div className={cn(
+                    "px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest",
+                    trip.status === 'Concluída' ? "bg-primary/20 text-primary" : "bg-accent/20 text-accent"
+                  )}>
+                    {trip.status}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="space-y-1">
-              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Último envio</p>
-              <p className="text-sm font-bold text-white">Nenhum realizado</p>
-            </div>
-            <Button asChild className="w-full neon-glow font-bold uppercase text-[11px] tracking-widest py-6 rounded-2xl">
-              <Link href="/checklist">INICIAR INSPEÇÃO</Link>
+            <Button asChild variant="ghost" className="w-full mt-6 text-[10px] uppercase font-bold text-primary tracking-widest hover:bg-primary/5">
+              <Link href="/viagens">Gerenciar Logística <ChevronRight className="h-3 w-3 ml-2" /></Link>
             </Button>
           </Card>
 
-          <Card className="lg:col-span-5 glass-card p-6">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="font-headline font-bold text-lg">Resumo Financeiro</h3>
-              <div className="px-3 py-1 bg-white/5 rounded-full text-muted-foreground text-[10px] font-bold">0%</div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 md:gap-8 mb-8">
-              <div className="space-y-3">
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Entradas Brutas</p>
-                <p className="text-xl md:text-2xl font-headline font-bold text-white">R$ 0</p>
-                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden" />
-              </div>
-              <div className="space-y-3">
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Despesas</p>
-                <p className="text-xl md:text-2xl font-headline font-bold text-white/80">R$ 0</p>
-                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden" />
-              </div>
-            </div>
-            <div className="pt-6 border-t border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-               <div>
-                 <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Lucro Líquido</p>
-                 <p className="text-3xl font-headline font-bold text-white tracking-tighter">R$ 0</p>
-               </div>
-               <Button variant="outline" className="border-white/10 bg-transparent text-[10px] uppercase font-bold tracking-widest h-12 rounded-xl">
-                 Ver Fluxo de Caixa
-               </Button>
-            </div>
-          </Card>
-
-          <Card className="lg:col-span-4 glass-card p-6 flex flex-col items-center relative overflow-hidden">
-            <h3 className="font-headline font-bold text-lg w-full text-left mb-6 uppercase tracking-widest text-primary/70">Disponibilidade</h3>
-            <div className="h-[180px] w-full relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={dataFleet}
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {dataFleet.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <p className="text-3xl font-headline font-bold">0</p>
-                <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">Frota</p>
-              </div>
-            </div>
-            <div className="w-full flex justify-center gap-6 mt-6">
-               {dataFleet.map((item, i) => (
-                 <div key={i} className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full" style={{backgroundColor: item.color}} />
-                    <span className="text-[10px] text-muted-foreground font-bold uppercase">{item.name}</span>
-                 </div>
-               ))}
-            </div>
+          <Card className="lg:col-span-8 glass-card p-6">
+             <div className="flex items-center justify-between mb-8">
+                <h3 className="font-headline font-bold text-lg">Resumo Operacional de Custos</h3>
+                <TrendingUp className="h-5 w-5 text-primary opacity-50" />
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-6 rounded-[2rem] bg-white/5 border border-white/5 space-y-4">
+                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Viagens Concluídas</p>
+                   <p className="text-4xl font-headline font-bold text-white">{trips?.filter(t => t.status === 'Concluída').length || 0}</p>
+                   <div className="h-1.5 w-full bg-primary/10 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary w-full opacity-50" />
+                   </div>
+                </div>
+                <div className="p-6 rounded-[2rem] bg-white/5 border border-white/5 space-y-4">
+                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Gastos Médios</p>
+                   <p className="text-4xl font-headline font-bold text-white">
+                      {formatCurrency(finance?.length ? stats.monthlyExpenses / finance.length : 0)}
+                   </p>
+                   <div className="h-1.5 w-full bg-accent/10 rounded-full overflow-hidden">
+                      <div className="h-full bg-accent w-full opacity-50" />
+                   </div>
+                </div>
+                <div className="p-6 rounded-[2rem] bg-white/5 border border-white/5 space-y-4">
+                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Custo Operacional</p>
+                   <p className="text-4xl font-headline font-bold text-white">
+                      {finance?.length ? ((stats.monthlyExpenses / (stats.estimatedProfit + stats.monthlyExpenses)) * 100 || 0).toFixed(0) : 0}%
+                   </p>
+                   <div className="h-1.5 w-full bg-red-500/10 rounded-full overflow-hidden">
+                      <div className="h-full bg-red-500 w-full opacity-50" />
+                   </div>
+                </div>
+             </div>
           </Card>
         </div>
       </div>
