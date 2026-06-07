@@ -12,6 +12,7 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "fire
 import { useAuth } from "@/firebase"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { PlaceHolderImages } from "@/lib/placeholder-images"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -21,6 +22,8 @@ export default function LoginPage() {
   const [isRegistering, setIsRegistering] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+
+  const logoImage = PlaceHolderImages.find(img => img.id === 'app-logo')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,10 +64,11 @@ export default function LoginPage() {
         <div className="text-center space-y-6">
           <div className="inline-flex items-center justify-center bg-white/5 p-4 rounded-[2rem] border border-primary/30 neon-glow relative w-28 h-28 mx-auto overflow-hidden">
             <Image 
-              src="/logo.png" 
-              alt="FC Construções Logo" 
+              src={logoImage?.imageUrl || "https://picsum.photos/seed/fclogo/200/200"} 
+              alt={logoImage?.description || "FC Logo"} 
               fill 
               className="object-contain p-3"
+              data-ai-hint={logoImage?.imageHint || "industrial logo"}
             />
           </div>
           <div className="space-y-2">

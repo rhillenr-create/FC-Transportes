@@ -19,6 +19,7 @@ import {
   FileText
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { PlaceHolderImages } from "@/lib/placeholder-images"
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -39,6 +40,7 @@ interface SidebarProps {
 
 export function Sidebar({ isMobile }: SidebarProps) {
   const pathname = usePathname()
+  const logoImage = PlaceHolderImages.find(img => img.id === 'app-logo')
 
   return (
     <div className={cn(
@@ -48,10 +50,11 @@ export function Sidebar({ isMobile }: SidebarProps) {
       <div className="p-8 lg:p-10 flex flex-col items-center gap-4">
         <div className="relative w-24 h-16 lg:w-28 lg:h-20 group cursor-pointer">
           <Image 
-            src="/logo.png" 
-            alt="FC Logo" 
+            src={logoImage?.imageUrl || "https://picsum.photos/seed/fclogo/200/200"} 
+            alt={logoImage?.description || "FC Logo"} 
             fill 
             className="object-contain transition-transform group-hover:scale-110 duration-500"
+            data-ai-hint={logoImage?.imageHint || "industrial logo"}
           />
         </div>
         <div className="text-center space-y-1">
