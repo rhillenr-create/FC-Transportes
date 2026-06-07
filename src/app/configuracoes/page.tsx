@@ -1,6 +1,7 @@
 
 "use client"
 
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -8,12 +9,86 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
-import { User, Bell, Shield, Palette, Save } from "lucide-react"
+import { User, Bell, Shield, Palette, Save, Loader2 } from "lucide-react"
+import { useAuth, useFirestore, useUser, useDoc } from "@/firebase"
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"
+import { useToast } from "@/hooks/use-toast"
+import { errorEmitter } from "@/firebase/error-emitter"
+import { FirestorePermissionError } from "@/firebase/errors"
 
 export default function SettingsPage() {
+  const { user } = useUser()
+  const db = useFirestore()
+  const { toast } = useToast()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Fetch User Profile
+  const userDocRef = user ? doc(db, "users", user.uid) : null
+  const { data: profile, loading: loadingProfile } = useDoc(userDocRef)
+
+  // Form state
+  const [formData, setFormData] = useState({
+    displayName: "",
+    email: "",
+    phone: "",
+    role: "Gestor de Frota"
+  })
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        displayName: profile.displayName || "",
+        email: profile.email || user?.email || "",
+        phone: profile.phone || "",
+        role: profile.role || "Gestor de Frota"
+      })
+    } else if (user) {
+      setFormData(prev => ({
+        ...prev,
+        email: user.email || ""
+      }))
+    }
+  }, [profile, user])
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+
+    setIsSubmitting(true)
+    const payload = {
+      ...formData,
+      uid: user.uid,
+      updatedAt: serverTimestamp()
+    }
+
+    setDoc(doc(db, "users", user.uid), payload, { merge: true })
+      .then(() => {
+        toast({
+          title: "Perfil Atualizado",
+          description: "Suas informações foram salvas com sucesso no sistema."
+        })
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: `users/${user.uid}`,
+          operation: "update",
+          requestResourceData: payload
+        })
+        errorEmitter.emit("permission-error", permissionError)
+      })
+      .finally(() => setIsSubmitting(false))
+  }
+
+  if (!mounted) return null
+
   return (
     <DashboardLayout>
-      <div className="space-y-8 max-w-4xl mx-auto">
+      <div className="space-y-8 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4">
         <div>
           <h2 className="text-3xl font-headline font-bold text-white">Configurações</h2>
           <p className="text-muted-foreground">Gerencie suas preferências e configurações de segurança.</p>
@@ -45,31 +120,62 @@ export default function SettingsPage() {
                 <CardTitle className="text-xl font-headline font-bold">Informações Pessoais</CardTitle>
                 <CardDescription>Atualize seus dados de cadastro no sistema.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome Completo</Label>
-                    <Input id="name" defaultValue="Administrador FC" className="bg-white/5 border-white/10" />
+              <CardContent>
+                <form onSubmit={handleSaveProfile} className="space-y-6">
+                  {loadingProfile ? (
+                    <div className="flex justify-center py-10">
+                      <Loader2 className="animate-spin h-8 w-8 text-primary opacity-20" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Nome Completo</Label>
+                        <Input 
+                          id="name" 
+                          placeholder="Seu nome"
+                          value={formData.displayName}
+                          onChange={(e) => setFormData({...formData, displayName: e.target.value})}
+                          className="bg-white/5 border-white/10" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">E-mail Corporativo</Label>
+                        <Input 
+                          id="email" 
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({...formData, email: e.target.value})}
+                          className="bg-white/5 border-white/10" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Telefone / WhatsApp</Label>
+                        <Input 
+                          id="phone" 
+                          placeholder="(00) 00000-0000"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                          className="bg-white/5 border-white/10" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="role">Cargo / Nível</Label>
+                        <Input 
+                          id="role" 
+                          value={formData.role}
+                          disabled 
+                          className="bg-white/5 border-white/10 opacity-50" 
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div className="pt-4">
+                    <Button type="submit" disabled={isSubmitting || loadingProfile} className="neon-glow font-bold">
+                      {isSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                      SALVAR ALTERAÇÕES
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-mail Corporativo</Label>
-                    <Input id="email" defaultValue="admin@fctransportes.com.br" className="bg-white/5 border-white/10" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone / WhatsApp</Label>
-                    <Input id="phone" defaultValue="(65) 99999-9999" className="bg-white/5 border-white/10" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Cargo / Nível</Label>
-                    <Input id="role" defaultValue="Gestor de Frota" disabled className="bg-white/5 border-white/10 opacity-50" />
-                  </div>
-                </div>
-                <div className="pt-4">
-                  <Button className="neon-glow font-bold">
-                    <Save className="h-4 w-4 mr-2" />
-                    SALVAR ALTERAÇÕES
-                  </Button>
-                </div>
+                </form>
               </CardContent>
             </Card>
           </TabsContent>
