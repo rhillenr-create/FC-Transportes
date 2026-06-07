@@ -14,7 +14,10 @@ import {
   TrendingUp, 
   History,
   Calendar,
-  Loader2
+  Loader2,
+  Trash2,
+  Edit,
+  MoreVertical
 } from "lucide-react"
 import {
   Table,
@@ -32,11 +35,21 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, addDoc, serverTimestamp, query, orderBy } from "firebase/firestore"
+import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc } from "firebase/firestore"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
 
@@ -47,6 +60,9 @@ export default function FuelPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [mounted, setMounted] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [recordToDelete, setRecordToDelete] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -92,7 +108,60 @@ export default function FuelPage() {
     return `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
   }
 
-  const handleAddFuel = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setEditingId(null)
+    setFormData({
+      truckId: "",
+      liters: "",
+      totalValue: "",
+      fuelType: "Diesel S10",
+      station: "",
+      km: ""
+    })
+  }
+
+  const handleEdit = (log: any) => {
+    setEditingId(log.id)
+    setFormData({
+      truckId: log.truckId,
+      liters: log.liters.toString(),
+      totalValue: log.totalValue.toString(),
+      fuelType: log.fuelType,
+      station: log.station,
+      km: log.km.toString()
+    })
+    setIsOpen(true)
+  }
+
+  const handleDeleteClick = (id: string) => {
+    setRecordToDelete(id)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (!recordToDelete) return
+
+    deleteDoc(doc(db, "fuel_entries", recordToDelete))
+      .then(() => {
+        toast({
+          title: "Registro Removido",
+          description: "O abastecimento foi excluído com sucesso."
+        })
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: `fuel_entries/${recordToDelete}`,
+          operation: "delete"
+        })
+        errorEmitter.emit("permission-error", permissionError)
+      })
+      .finally(() => {
+        setIsDeleteDialogOpen(false)
+        setRecordToDelete(null)
+      })
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.truckId) {
       toast({ variant: "destructive", title: "Erro", description: "Selecione um veículo." })
@@ -106,34 +175,48 @@ export default function FuelPage() {
       liters: Number(formData.liters),
       totalValue: Number(formData.totalValue),
       km: Number(formData.km),
-      createdAt: serverTimestamp()
+      updatedAt: serverTimestamp()
     }
 
-    addDoc(collection(db, "fuel_entries"), payload)
-      .then(() => {
-        setIsOpen(false)
-        setFormData({
-          truckId: "",
-          liters: "",
-          totalValue: "",
-          fuelType: "Diesel S10",
-          station: "",
-          km: ""
+    if (editingId) {
+      updateDoc(doc(db, "fuel_entries", editingId), payload)
+        .then(() => {
+          setIsOpen(false)
+          resetForm()
+          toast({
+            title: "Registro Atualizado",
+            description: "O abastecimento foi corrigido com sucesso."
+          })
         })
-        toast({
-          title: "Registro Salvo",
-          description: "O abastecimento foi registrado com sucesso."
+        .catch(async () => {
+          const permissionError = new FirestorePermissionError({
+            path: `fuel_entries/${editingId}`,
+            operation: "update",
+            requestResourceData: payload
+          })
+          errorEmitter.emit("permission-error", permissionError)
         })
-      })
-      .catch(async () => {
-        const permissionError = new FirestorePermissionError({
-          path: "fuel_entries",
-          operation: "create",
-          requestResourceData: payload
+        .finally(() => setIsSubmitting(false))
+    } else {
+      addDoc(collection(db, "fuel_entries"), { ...payload, createdAt: serverTimestamp() })
+        .then(() => {
+          setIsOpen(false)
+          resetForm()
+          toast({
+            title: "Registro Salvo",
+            description: "O abastecimento foi registrado com sucesso."
+          })
         })
-        errorEmitter.emit("permission-error", permissionError)
-      })
-      .finally(() => setIsSubmitting(false))
+        .catch(async () => {
+          const permissionError = new FirestorePermissionError({
+            path: "fuel_entries",
+            operation: "create",
+            requestResourceData: payload
+          })
+          errorEmitter.emit("permission-error", permissionError)
+        })
+        .finally(() => setIsSubmitting(false))
+    }
   }
 
   const filteredLogs = fuelLogs?.filter(log => 
@@ -150,7 +233,7 @@ export default function FuelPage() {
             <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Monitore o consumo e gastos com combustível em tempo real</p>
           </div>
           
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <Dialog open={isOpen} onOpenChange={(open) => { if(!open) resetForm(); setIsOpen(open); }}>
             <DialogTrigger asChild>
               <Button className="neon-glow font-bold h-12 px-8 rounded-xl bg-primary text-primary-foreground">
                 <Plus className="w-5 h-5 mr-2" />
@@ -159,9 +242,11 @@ export default function FuelPage() {
             </DialogTrigger>
             <DialogContent className="bg-card border-white/10 text-white max-w-xl rounded-[2rem]">
               <DialogHeader>
-                <DialogTitle className="text-2xl font-headline font-bold text-primary">Novo Registro de Abastecimento</DialogTitle>
+                <DialogTitle className="text-2xl font-headline font-bold text-primary">
+                  {editingId ? "Editar Registro" : "Novo Registro de Abastecimento"}
+                </DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleAddFuel} className="space-y-6 py-4">
+              <form onSubmit={handleSubmit} className="space-y-6 py-4">
                 <div className="space-y-2">
                   <Label>Veículo</Label>
                   <Select value={formData.truckId} onValueChange={(v) => setFormData({...formData, truckId: v})}>
@@ -248,7 +333,7 @@ export default function FuelPage() {
                   <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-white">Cancelar</Button>
                   <Button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground neon-glow font-bold px-8">
                     {isSubmitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
-                    SALVAR REGISTRO
+                    {editingId ? "SALVAR ALTERAÇÕES" : "SALVAR REGISTRO"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -296,7 +381,7 @@ export default function FuelPage() {
           <div className="p-8 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <h3 className="font-bold flex items-center gap-3 text-lg">
               <History className="h-5 w-5 text-primary" />
-              Últimos Registros
+              Histórico de Abastecimentos
             </h3>
             <div className="relative w-full max-w-md">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -318,20 +403,21 @@ export default function FuelPage() {
                   <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">Tipo</TableHead>
                   <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">Posto</TableHead>
                   <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">KM</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-bold text-muted-foreground pr-8">Valor Total</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">Valor Total</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-bold text-muted-foreground pr-8">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loadingLogs ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                        <Loader2 className="animate-spin h-8 w-8 mx-auto mb-2 opacity-20" />
                        Carregando histórico...
                     </TableCell>
                   </TableRow>
                 ) : !filteredLogs || filteredLogs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground font-bold uppercase tracking-widest">Nenhum registro encontrado.</TableCell>
+                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground font-bold uppercase tracking-widest">Nenhum registro encontrado.</TableCell>
                   </TableRow>
                 ) : filteredLogs.map((log) => (
                   <TableRow key={log.id} className="border-white/5 table-row-hover h-20">
@@ -348,8 +434,28 @@ export default function FuelPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground font-medium">{log.station}</TableCell>
                     <TableCell className="font-mono text-xs">{mounted ? log.km?.toLocaleString('pt-BR') : log.km} km</TableCell>
-                    <TableCell className="text-right font-headline font-bold text-white pr-8">
+                    <TableCell className="font-headline font-bold text-white">
                       {formatCurrency(log.totalValue || 0)}
+                    </TableCell>
+                    <TableCell className="text-right pr-8">
+                       <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleEdit(log)}
+                            className="h-8 w-8 rounded-lg hover:bg-white/10 hover:text-primary transition-colors"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteClick(log.id)}
+                            className="h-8 w-8 rounded-lg hover:bg-white/10 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -358,6 +464,26 @@ export default function FuelPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="bg-card border-white/10 text-white rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-headline font-bold text-primary">Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Você tem certeza que deseja excluir este registro de abastecimento? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-500 text-white hover:bg-red-600 neon-glow font-bold rounded-xl"
+            >
+              EXCLUIR REGISTRO
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   )
 }
