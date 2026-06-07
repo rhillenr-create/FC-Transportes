@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "UserProfile": {
@@ -12,6 +11,21 @@
         "role": { "type": "string", "enum": ["admin", "driver"], "description": "Nível de acesso" }
       },
       "required": ["uid", "email"]
+    },
+    "Truck": {
+      "title": "Veículo",
+      "description": "Dados técnicos e operacionais de um caminhão da frota.",
+      "type": "object",
+      "properties": {
+        "plate": { "type": "string", "description": "Placa do veículo" },
+        "model": { "type": "string", "description": "Modelo/Marca" },
+        "year": { "type": "number", "description": "Ano de fabricação" },
+        "km": { "type": "number", "description": "Quilometragem atual" },
+        "avg": { "type": "number", "description": "Média de consumo KM/L" },
+        "status": { "type": "string", "enum": ["Disponível", "Em Viagem", "Manutenção"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["plate", "model"]
     }
   },
   "auth": {
@@ -21,6 +35,10 @@
     "/users/{userId}": {
       "schema": "#/backend/entities/UserProfile",
       "description": "Coleção de perfis de usuários do sistema"
+    },
+    "/trucks/{truckId}": {
+      "schema": "#/backend/entities/Truck",
+      "description": "Cadastro central de veículos da frota"
     }
   }
 }

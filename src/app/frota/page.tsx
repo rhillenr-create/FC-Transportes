@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -11,8 +10,9 @@ import {
   Edit2, 
   Trash2, 
   Eye, 
-  Truck,
-  ArrowUpRight
+  Truck as TruckIcon,
+  ArrowUpRight,
+  Loader2
 } from "lucide-react"
 import {
   Table,
@@ -33,20 +33,83 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-
-const trucks = [
-  { id: 1, plate: "ABC-1234", model: "Volvo FH 540", year: 2022, km: "142.000", avg: "2.8", status: "Em Viagem" },
-  { id: 2, plate: "XYZ-9876", model: "Scania R 450", year: 2021, km: "210.500", avg: "3.2", status: "Disponível" },
-  { id: 3, plate: "KLT-4433", model: "Mercedes Actros", year: 2023, km: "45.000", avg: "3.5", status: "Manutenção" },
-  { id: 4, plate: "MNO-0099", model: "Volvo FH 460", year: 2020, km: "350.000", avg: "2.5", status: "Disponível" },
-]
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection, addDoc, serverTimestamp, deleteDoc, doc, query, orderBy } from "firebase/firestore"
+import { errorEmitter } from "@/firebase/error-emitter"
+import { FirestorePermissionError } from "@/firebase/errors"
+import { useToast } from "@/hooks/use-toast"
 
 export default function FleetPage() {
+  const db = useFirestore()
+  const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Estados do formulário
+  const [formData, setFormData] = useState({
+    plate: "",
+    model: "",
+    year: new Date().getFullYear(),
+    km: 0,
+    avg: 3.5,
+    type: "heavy"
+  })
+
+  // Consulta real ao Firestore
+  const trucksQuery = useMemoFirebase(() => {
+    return query(collection(db, "trucks"), orderBy("createdAt", "desc"))
+  }, [db])
+
+  const { data: trucks, loading } = useCollection(trucksQuery)
 
   const handleAddTruck = (e: React.FormEvent) => {
     e.preventDefault()
-    setIsOpen(false)
+    setIsSubmitting(true)
+
+    const truckData = {
+      ...formData,
+      status: "Disponível",
+      createdAt: serverTimestamp()
+    }
+
+    addDoc(collection(db, "trucks"), truckData)
+      .then(() => {
+        setIsOpen(false)
+        setFormData({
+          plate: "",
+          model: "",
+          year: new Date().getFullYear(),
+          km: 0,
+          avg: 3.5,
+          type: "heavy"
+        })
+        toast({
+          title: "Veículo Cadastrado",
+          description: `O veículo ${formData.plate} foi salvo no banco de dados.`
+        })
+      })
+      .catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: "trucks",
+          operation: "create",
+          requestResourceData: truckData
+        })
+        errorEmitter.emit("permission-error", permissionError)
+      })
+      .finally(() => setIsSubmitting(false))
+  }
+
+  const handleDelete = (id: string, plate: string) => {
+    if (confirm(`Tem certeza que deseja excluir o veículo ${plate}?`)) {
+      deleteDoc(doc(db, "trucks", id))
+        .catch(async () => {
+          const permissionError = new FirestorePermissionError({
+            path: `trucks/${id}`,
+            operation: "delete"
+          })
+          errorEmitter.emit("permission-error", permissionError)
+        })
+    }
   }
 
   return (
@@ -55,7 +118,7 @@ export default function FleetPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-1">
             <h2 className="text-4xl font-headline font-bold text-white tracking-tight">Controle de Frota</h2>
-            <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Gestão centralizada de ativos logísticos</p>
+            <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Gestão centralizada de ativos logísticos (Real-time)</p>
           </div>
           
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -73,30 +136,66 @@ export default function FleetPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="plate">Placa</Label>
-                    <Input id="plate" placeholder="AAA-0000" className="bg-white/5 border-white/10 uppercase" required />
+                    <Input 
+                      id="plate" 
+                      placeholder="AAA-0000" 
+                      className="bg-white/5 border-white/10 uppercase" 
+                      value={formData.plate}
+                      onChange={(e) => setFormData({...formData, plate: e.target.value})}
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="model">Modelo / Fabricante</Label>
-                    <Input id="model" placeholder="Ex: Volvo FH 540" className="bg-white/5 border-white/10" required />
+                    <Input 
+                      id="model" 
+                      placeholder="Ex: Volvo FH 540" 
+                      className="bg-white/5 border-white/10" 
+                      value={formData.model}
+                      onChange={(e) => setFormData({...formData, model: e.target.value})}
+                      required 
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="year">Ano</Label>
-                    <Input id="year" type="number" placeholder="2024" className="bg-white/5 border-white/10" required />
+                    <Input 
+                      id="year" 
+                      type="number" 
+                      className="bg-white/5 border-white/10" 
+                      value={formData.year}
+                      onChange={(e) => setFormData({...formData, year: parseInt(e.target.value)})}
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="km">Quilometragem Inicial</Label>
-                    <Input id="km" type="number" placeholder="0" className="bg-white/5 border-white/10" required />
+                    <Input 
+                      id="km" 
+                      type="number" 
+                      className="bg-white/5 border-white/10" 
+                      value={formData.km}
+                      onChange={(e) => setFormData({...formData, km: parseInt(e.target.value)})}
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="avg">Média Esperada (KM/L)</Label>
-                    <Input id="avg" placeholder="3.5" className="bg-white/5 border-white/10" required />
+                    <Input 
+                      id="avg" 
+                      type="number"
+                      step="0.1"
+                      className="bg-white/5 border-white/10" 
+                      value={formData.avg}
+                      onChange={(e) => setFormData({...formData, avg: parseFloat(e.target.value)})}
+                      required 
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Tipo de Veículo</Label>
-                  <Select>
+                  <Select value={formData.type} onValueChange={(v) => setFormData({...formData, type: v})}>
                     <SelectTrigger className="bg-white/5 border-white/10 text-white">
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
@@ -109,7 +208,10 @@ export default function FleetPage() {
                 </div>
                 <DialogFooter className="pt-4">
                   <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-white">Cancelar</Button>
-                  <Button type="submit" className="bg-primary text-primary-foreground neon-glow font-bold px-8">CONCLUIR CADASTRO</Button>
+                  <Button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground neon-glow font-bold px-8">
+                    {isSubmitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+                    CONCLUIR CADASTRO
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -118,9 +220,9 @@ export default function FleetPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { label: "Total da Frota", value: "12", icon: Truck, color: "text-primary", bg: "bg-primary/10" },
-            { label: "Veículos Ativos", value: "08", icon: Truck, color: "text-accent", bg: "bg-accent/10" },
-            { label: "Em Manutenção", value: "02", icon: Truck, color: "text-red-500", bg: "bg-red-500/10" },
+            { label: "Total da Frota", value: loading ? "..." : trucks?.length || 0, icon: TruckIcon, color: "text-primary", bg: "bg-primary/10" },
+            { label: "Veículos Ativos", value: trucks?.filter(t => t.status === 'Em Viagem').length || 0, icon: TruckIcon, color: "text-accent", bg: "bg-accent/10" },
+            { label: "Disponíveis", value: trucks?.filter(t => t.status === 'Disponível').length || 0, icon: TruckIcon, color: "text-blue-500", bg: "bg-blue-500/10" },
           ].map((stat, i) => (
             <div key={i} className="glass-card rounded-[2rem] p-8 flex items-center gap-6 group hover:neon-border transition-all">
               <div className={cn("p-5 rounded-2xl group-hover:scale-110 transition-transform", stat.bg, stat.color)}>
@@ -130,10 +232,6 @@ export default function FleetPage() {
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">{stat.label}</p>
                 <div className="flex items-baseline gap-2">
                   <p className="text-3xl font-headline font-bold">{stat.value}</p>
-                  <span className="text-[10px] font-bold text-primary flex items-center gap-0.5">
-                    <ArrowUpRight className="h-3 w-3" />
-                    +2
-                  </span>
                 </div>
               </div>
             </div>
@@ -144,17 +242,7 @@ export default function FleetPage() {
           <div className="p-8 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="relative w-full max-w-md">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input placeholder="Buscar por placa, modelo ou motorista..." className="pl-12 h-12 w-full bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary/40 text-white" />
-            </div>
-            <div className="flex items-center gap-4">
-               <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Filtrar por Status:</span>
-               <div className="flex gap-2">
-                 {["Todos", "Disponível", "Viagem", "Manutenção"].map((f) => (
-                   <button key={f} className="px-4 py-2 rounded-lg bg-white/5 text-[10px] font-bold uppercase hover:bg-primary hover:text-primary-foreground transition-all">
-                     {f}
-                   </button>
-                 ))}
-               </div>
+              <input placeholder="Buscar no banco de dados..." className="pl-12 h-12 w-full bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary/40 text-white" />
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -171,7 +259,20 @@ export default function FleetPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {trucks.map((truck) => (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                      <Loader2 className="animate-spin h-8 w-8 mx-auto mb-2 opacity-20" />
+                      Carregando frota do banco de dados...
+                    </TableCell>
+                  </TableRow>
+                ) : trucks?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                      Nenhum veículo cadastrado no sistema.
+                    </TableCell>
+                  </TableRow>
+                ) : trucks?.map((truck: any) => (
                   <TableRow key={truck.id} className="border-white/5 table-row-hover h-20">
                     <TableCell className="font-bold text-primary text-base pl-8">{truck.plate}</TableCell>
                     <TableCell className="font-medium text-white/90">{truck.model}</TableCell>
@@ -190,9 +291,14 @@ export default function FleetPage() {
                     </TableCell>
                     <TableCell className="text-right pr-8">
                       <div className="flex items-center justify-end gap-3">
-                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/10 hover:text-primary"><Eye className="h-5 w-5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/10 hover:text-accent"><Edit2 className="h-5 w-5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/10 hover:text-red-500"><Trash2 className="h-5 w-5" /></Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleDelete(truck.id, truck.plate)}
+                          className="h-10 w-10 rounded-xl hover:bg-white/10 hover:text-red-500"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
