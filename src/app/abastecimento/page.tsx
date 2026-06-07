@@ -66,7 +66,7 @@ export default function FuelPage() {
   const trucksQuery = useMemoFirebase(() => {
     return query(collection(db, "trucks"), orderBy("plate", "asc"))
   }, [db])
-  const { data: trucks } = useCollection(trucksQuery)
+  const { data: trucks, loading: loadingTrucks } = useCollection(trucksQuery)
 
   // Fetch Fuel Logs
   const fuelQuery = useMemoFirebase(() => {
@@ -81,7 +81,7 @@ export default function FuelPage() {
     const totalLiters = fuelLogs.reduce((acc, log) => acc + Number(log.liters || 0), 0)
     const totalValue = fuelLogs.reduce((acc, log) => acc + Number(log.totalValue || 0), 0)
     
-    // Simple average calculation (KM based)
+    // Simple average calculation
     const avg = fuelLogs.length > 0 ? (totalLiters / fuelLogs.length).toFixed(1) : 0
 
     return { totalLiters, totalValue, avg }
@@ -104,7 +104,7 @@ export default function FuelPage() {
     const payload = {
       ...formData,
       liters: Number(formData.liters),
-      totalValue: Number(formData.totalValue.replace(/[^0-9,.-]+/g, "").replace(",", ".")),
+      totalValue: Number(formData.totalValue),
       km: Number(formData.km),
       createdAt: serverTimestamp()
     }
@@ -122,7 +122,7 @@ export default function FuelPage() {
         })
         toast({
           title: "Registro Salvo",
-          description: "O abastecimento foi registrado com sucesso no banco de dados."
+          description: "O abastecimento foi registrado com sucesso."
         })
       })
       .catch(async () => {
@@ -166,13 +166,15 @@ export default function FuelPage() {
                   <Label>Veículo</Label>
                   <Select value={formData.truckId} onValueChange={(v) => setFormData({...formData, truckId: v})}>
                     <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                      <SelectValue placeholder="Selecione o caminhão" />
+                      <SelectValue placeholder={loadingTrucks ? "Carregando veículos..." : "Selecione o caminhão"} />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-white/10 text-white">
                       {trucks?.map(truck => (
                         <SelectItem key={truck.id} value={truck.plate}>{truck.plate} - {truck.model}</SelectItem>
                       ))}
-                      {(!trucks || trucks.length === 0) && <SelectItem value="none" disabled>Nenhum veículo cadastrado</SelectItem>}
+                      {(!loadingTrucks && (!trucks || trucks.length === 0)) && (
+                        <SelectItem value="none" disabled>Nenhum veículo cadastrado</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -194,7 +196,9 @@ export default function FuelPage() {
                     <Label htmlFor="price">Valor Total</Label>
                     <Input 
                       id="price" 
-                      placeholder="R$ 0,00" 
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00" 
                       className="bg-white/5 border-white/10" 
                       value={formData.totalValue}
                       onChange={(e) => setFormData({...formData, totalValue: e.target.value})}
@@ -298,7 +302,7 @@ export default function FuelPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Filtrar por placa ou posto..." 
-                className="pl-12 bg-white/5 h-12 border-white/10 rounded-xl"
+                className="pl-12 h-12 bg-white/5 border-white/10 rounded-xl"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />

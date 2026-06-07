@@ -66,7 +66,7 @@ export default function TripsPage() {
     setMounted(true)
   }, [])
   
-  // Estado do formulário
+  // Form state
   const [formData, setFormData] = useState({
     origin: "",
     destination: "",
@@ -76,15 +76,25 @@ export default function TripsPage() {
     truck: ""
   })
 
-  // Consulta real ao Firestore
+  // Fetch Trucks for selection
+  const trucksQuery = useMemoFirebase(() => {
+    return query(collection(db, "trucks"), orderBy("plate", "asc"))
+  }, [db])
+  const { data: trucks, loading: loadingTrucks } = useCollection(trucksQuery)
+
+  // Fetch Trips
   const tripsQuery = useMemoFirebase(() => {
     return query(collection(db, "trips"), orderBy("createdAt", "desc"))
   }, [db])
-
   const { data: trips, loading } = useCollection(tripsQuery)
 
   const handleProgramTrip = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.truck) {
+      toast({ variant: "destructive", title: "Erro", description: "Selecione um veículo." })
+      return
+    }
+
     setIsSubmitting(true)
 
     const tripData = {
@@ -250,26 +260,27 @@ export default function TripsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Motorista</Label>
-                    <Select value={formData.driver} onValueChange={(v) => setFormData({...formData, driver: v})}>
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                        <SelectValue placeholder="Selecionar Motorista" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-white/10 text-white">
-                        <SelectItem value="João Silva">João Silva</SelectItem>
-                        <SelectItem value="Pedro Santos">Pedro Santos</SelectItem>
-                        <SelectItem value="Marcos Paulo">Marcos Paulo</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Input 
+                      placeholder="Nome do Motorista" 
+                      className="bg-white/5 border-white/10" 
+                      value={formData.driver}
+                      onChange={(e) => setFormData({...formData, driver: e.target.value})}
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Veículo</Label>
                     <Select value={formData.truck} onValueChange={(v) => setFormData({...formData, truck: v})}>
                       <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                        <SelectValue placeholder="Selecionar Caminhão" />
+                        <SelectValue placeholder={loadingTrucks ? "Carregando..." : "Selecionar Caminhão"} />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-white/10 text-white">
-                        <SelectItem value="ABC-1234">Volvo FH 540 (ABC-1234)</SelectItem>
-                        <SelectItem value="XYZ-9876">Scania R 450 (XYZ-9876)</SelectItem>
+                        {trucks?.map(truck => (
+                          <SelectItem key={truck.id} value={truck.plate}>{truck.plate} - {truck.model}</SelectItem>
+                        ))}
+                        {(!loadingTrucks && (!trucks || trucks.length === 0)) && (
+                          <SelectItem value="none" disabled>Nenhum veículo cadastrado</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

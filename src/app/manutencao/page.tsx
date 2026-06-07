@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,7 +13,8 @@ import {
   CheckCircle2, 
   Clock,
   Settings2,
-  Calendar
+  Calendar,
+  Loader2
 } from "lucide-react"
 import {
   Table,
@@ -35,10 +36,23 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection, query, orderBy } from "firebase/firestore"
 
 export default function MaintenancePage() {
+  const db = useFirestore()
   const [isOpen, setIsOpen] = useState(false)
-  const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]) // Começa vazio para testes
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Fetch Trucks for selection
+  const trucksQuery = useMemoFirebase(() => {
+    return query(collection(db, "trucks"), orderBy("plate", "asc"))
+  }, [db])
+  const { data: trucks, loading: loadingTrucks } = useCollection(trucksQuery)
 
   const handleScheduleMaintenance = (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,10 +84,15 @@ export default function MaintenancePage() {
                   <Label>Veículo</Label>
                   <Select>
                     <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                      <SelectValue placeholder="Selecione o caminhão" />
+                      <SelectValue placeholder={loadingTrucks ? "Carregando..." : "Selecione o caminhão"} />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-white/10 text-white">
-                      <SelectItem value="none">Nenhum veículo cadastrado</SelectItem>
+                      {trucks?.map(truck => (
+                        <SelectItem key={truck.id} value={truck.plate}>{truck.plate} - {truck.model}</SelectItem>
+                      ))}
+                      {(!loadingTrucks && (!trucks || trucks.length === 0)) && (
+                        <SelectItem value="none" disabled>Nenhum veículo cadastrado</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -87,7 +106,7 @@ export default function MaintenancePage() {
                       <SelectContent className="bg-card border-white/10 text-white">
                         <SelectItem value="preventive">Preventiva</SelectItem>
                         <SelectItem value="corrective">Corretiva</SelectItem>
-                        <SelectItem value="predictive">Preditiva (IA)</SelectItem>
+                        <SelectItem value="predictive">Preditiva</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -179,41 +198,9 @@ export default function MaintenancePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {maintenanceRecords.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">Nenhum registro de manutenção.</TableCell>
-                </TableRow>
-              ) : maintenanceRecords.map((record) => (
-                <TableRow key={record.id} className="border-white/5 hover:bg-white/5 transition-colors">
-                  <TableCell className="font-bold text-primary">{record.truck}</TableCell>
-                  <TableCell>
-                    <span className={cn(
-                      "text-[10px] font-bold uppercase",
-                      record.type === "Preventiva" ? "text-accent" : "text-orange-400"
-                    )}>
-                      {record.type}
-                    </span>
-                  </TableCell>
-                  <TableCell className="font-medium">{record.service}</TableCell>
-                  <TableCell>
-                    <span className={cn(
-                      "px-2 py-1 rounded text-[10px] font-bold uppercase",
-                      record.status === "Concluída" ? "bg-primary/20 text-primary" : 
-                      record.status === "Em Execução" ? "bg-orange-500/20 text-orange-500" : 
-                      "bg-white/10 text-white"
-                    )}>
-                      {record.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                      <Calendar className="h-3 w-3" />
-                      {record.date}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right font-bold">{record.cost}</TableCell>
-                </TableRow>
-              ))}
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">Nenhum registro de manutenção.</TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         </div>
