@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -43,6 +44,21 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["origin", "destination", "client", "driver", "truck"]
+    },
+    "FuelEntry": {
+      "title": "Registro de Abastecimento",
+      "description": "Log de consumo de combustível por veículo.",
+      "type": "object",
+      "properties": {
+        "truckId": { "type": "string", "description": "ID ou Placa do caminhão" },
+        "liters": { "type": "number", "description": "Quantidade de litros" },
+        "totalValue": { "type": "number", "description": "Valor total pago" },
+        "fuelType": { "type": "string", "enum": ["Diesel S10", "Diesel S500", "Arla 32"] },
+        "station": { "type": "string", "description": "Nome do posto" },
+        "km": { "type": "number", "description": "KM no momento do abastecimento" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["truckId", "liters", "totalValue", "km"]
     }
   },
   "auth": {
@@ -60,6 +76,10 @@
     "/trips/{tripId}": {
       "schema": "#/backend/entities/Trip",
       "description": "Gestão de viagens e logística"
+    },
+    "/fuel_entries/{entryId}": {
+      "schema": "#/backend/entities/FuelEntry",
+      "description": "Registros de abastecimento de combustível"
     }
   }
 }
