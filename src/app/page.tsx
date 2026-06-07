@@ -1,8 +1,10 @@
+
 "use client"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Leaf, Mail, Lock, Loader2 } from "lucide-react"
+import Image from "next/image"
+import { Mail, Lock, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,8 +25,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(circle_at_top_right,rgba(0,255,136,0.05),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(204,255,0,0.03),transparent_40%)]">
       <div className="w-full max-w-[420px] space-y-8 animate-in zoom-in-95 duration-500">
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center bg-primary/20 p-4 rounded-2xl border border-primary/30 neon-glow mb-2">
-            <Leaf className="w-12 h-12 text-primary fill-primary/10" />
+          <div className="inline-flex items-center justify-center bg-white/5 p-4 rounded-3xl border border-primary/30 neon-glow mb-2 relative w-24 h-24 mx-auto overflow-hidden">
+            <Image 
+              src="/logo.png" 
+              alt="FC Construções Logo" 
+              fill 
+              className="object-contain p-2"
+            />
           </div>
           <h1 className="text-4xl font-headline font-bold text-white tracking-tight">FC FROTA</h1>
           <p className="text-muted-foreground font-medium">Controle de Logística Avançado</p>
@@ -32,7 +39,9 @@ export default function LoginPage() {
 
         <div className="bg-card border border-white/5 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-8 opacity-5">
-             <Leaf className="w-32 h-32 text-primary rotate-12" />
+             <div className="w-32 h-32 relative rotate-12">
+               <Image src="/logo.png" alt="" fill className="object-contain" />
+             </div>
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-6 relative z-10">

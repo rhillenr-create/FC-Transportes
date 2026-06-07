@@ -1,7 +1,9 @@
+
 "use client"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import Image from "next/image"
 import { 
   LayoutDashboard, 
   Truck, 
@@ -11,8 +13,7 @@ import {
   ClipboardCheck, 
   Settings, 
   LogOut,
-  Wrench,
-  Leaf
+  Wrench
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -32,8 +33,13 @@ export function Sidebar() {
   return (
     <div className="flex flex-col w-64 h-screen sidebar-gradient border-r border-white/5 fixed left-0 top-0 z-50">
       <div className="p-6 flex items-center gap-3">
-        <div className="bg-primary/20 p-2 rounded-lg border border-primary/30">
-          <Leaf className="w-6 h-6 text-primary fill-primary/10" />
+        <div className="relative w-10 h-10 overflow-hidden rounded-lg border border-primary/30 bg-white/5">
+          <Image 
+            src="/logo.png" 
+            alt="FC Logo" 
+            fill 
+            className="object-contain p-1"
+          />
         </div>
         <span className="text-xl font-headline font-bold tracking-tight text-white">FC FROTA</span>
       </div>
