@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
@@ -53,7 +53,12 @@ export default function FinancePage() {
   const db = useFirestore()
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { toast } = useToast()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Form state
   const [formData, setFormData] = useState({
@@ -101,6 +106,16 @@ export default function FinancePage() {
 
     return { revenue, expenses, balance, margin, categoryData }
   }, [transactions])
+
+  const formatCurrency = (val: number) => {
+    if (!mounted) return "R$ 0,00"
+    return `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+  }
+
+  const formatDate = (dateStr: string) => {
+    if (!mounted) return ""
+    return new Date(dateStr).toLocaleDateString('pt-BR')
+  }
 
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault()
@@ -257,10 +272,10 @@ export default function FinancePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[
-            { label: "Receitas Totais", value: `R$ ${stats.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10", trend: "Atual" },
-            { label: "Despesas Operacionais", value: `R$ ${stats.expenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: TrendingDown, color: "text-red-500", bg: "bg-red-500/10", trend: "Atual" },
-            { label: "Saldo em Caixa", value: `R$ ${stats.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: Wallet, color: "text-accent", bg: "bg-accent/10", trend: "Saldo" },
-            { label: "Margem Líquida", value: `${stats.margin.toFixed(1)}%`, icon: DollarSign, color: "text-blue-400", bg: "bg-blue-400/10", trend: "Rent." },
+            { label: "Receitas Totais", value: formatCurrency(stats.revenue), icon: TrendingUp, color: "text-primary", bg: "bg-primary/10", trend: "Atual" },
+            { label: "Despesas Operacionais", value: formatCurrency(stats.expenses), icon: TrendingDown, color: "text-red-500", bg: "bg-red-500/10", trend: "Atual" },
+            { label: "Saldo em Caixa", value: formatCurrency(stats.balance), icon: Wallet, color: "text-accent", bg: "bg-accent/10", trend: "Saldo" },
+            { label: "Margem Líquida", value: mounted ? `${stats.margin.toFixed(1)}%` : "0.0%", icon: DollarSign, color: "text-blue-400", bg: "bg-blue-400/10", trend: "Rent." },
           ].map((stat, i) => (
             <div key={i} className="glass-card rounded-[2rem] p-8 group hover:neon-border transition-all">
               <div className="flex items-center gap-4 mb-4">
@@ -351,7 +366,7 @@ export default function FinancePage() {
                       <div>
                         <p className="font-bold text-sm text-white">{t.description}</p>
                         <p className="text-[10px] text-muted-foreground uppercase font-medium flex items-center gap-1">
-                          <CalendarIcon className="h-3 w-3" /> {new Date(t.date).toLocaleDateString()}
+                          <CalendarIcon className="h-3 w-3" /> {formatDate(t.date)}
                         </p>
                       </div>
                     </div>
@@ -360,7 +375,7 @@ export default function FinancePage() {
                         "font-headline font-bold",
                         t.type === 'entry' ? "text-primary" : "text-red-500"
                       )}>
-                        {t.type === 'entry' ? '+' : '-'} R$ {Number(t.value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        {t.type === 'entry' ? '+' : '-'} {formatCurrency(t.value)}
                       </p>
                       <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">{t.category}</p>
                     </div>

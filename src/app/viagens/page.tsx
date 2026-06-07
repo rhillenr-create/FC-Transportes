@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -59,6 +60,11 @@ export default function TripsPage() {
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   // Estado do formulário
   const [formData, setFormData] = useState({
@@ -381,7 +387,7 @@ export default function TripsPage() {
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
                         <span className="text-xs font-medium tracking-tight">
-                          {trip.createdAt?.toDate ? trip.createdAt.toDate().toLocaleDateString() : 'Recent'}
+                          {mounted && trip.createdAt?.toDate ? trip.createdAt.toDate().toLocaleDateString('pt-BR') : 'Recent'}
                         </span>
                       </div>
                     </TableCell>

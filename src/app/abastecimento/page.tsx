@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -46,6 +46,11 @@ export default function FuelPage() {
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Form state
   const [formData, setFormData] = useState({
@@ -77,11 +82,15 @@ export default function FuelPage() {
     const totalValue = fuelLogs.reduce((acc, log) => acc + Number(log.totalValue || 0), 0)
     
     // Simple average calculation (KM based)
-    // Note: For a real average we'd need to compare KM between two subsequent fuelings
     const avg = fuelLogs.length > 0 ? (totalLiters / fuelLogs.length).toFixed(1) : 0
 
     return { totalLiters, totalValue, avg }
   }, [fuelLogs])
+
+  const formatCurrency = (val: number) => {
+    if (!mounted) return "R$ 0,00"
+    return `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+  }
 
   const handleAddFuel = (e: React.FormEvent) => {
     e.preventDefault()
@@ -251,7 +260,7 @@ export default function FuelPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Litros Totais</p>
-                <p className="text-3xl font-headline font-bold">{stats.totalLiters.toLocaleString()} L</p>
+                <p className="text-3xl font-headline font-bold">{mounted ? stats.totalLiters.toLocaleString('pt-BR') : "0"} L</p>
               </div>
             </CardContent>
           </Card>
@@ -273,7 +282,7 @@ export default function FuelPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Investimento Total</p>
-                <p className="text-3xl font-headline font-bold">R$ {stats.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                <p className="text-3xl font-headline font-bold">{formatCurrency(stats.totalValue)}</p>
               </div>
             </CardContent>
           </Card>
@@ -326,7 +335,7 @@ export default function FuelPage() {
                     <TableCell>
                       <div className="flex items-center gap-2 text-muted-foreground text-xs">
                         <Calendar className="h-3.5 w-3.5" />
-                        {log.createdAt?.toDate ? log.createdAt.toDate().toLocaleDateString() : 'Recent'}
+                        {mounted && log.createdAt?.toDate ? log.createdAt.toDate().toLocaleDateString('pt-BR') : 'Recent'}
                       </div>
                     </TableCell>
                     <TableCell className="font-mono">{log.liters} L</TableCell>
@@ -334,9 +343,9 @@ export default function FuelPage() {
                       <span className="px-3 py-1 rounded-full bg-white/5 text-[9px] font-bold uppercase tracking-widest border border-white/10">{log.fuelType}</span>
                     </TableCell>
                     <TableCell className="text-muted-foreground font-medium">{log.station}</TableCell>
-                    <TableCell className="font-mono text-xs">{log.km?.toLocaleString()} km</TableCell>
+                    <TableCell className="font-mono text-xs">{mounted ? log.km?.toLocaleString('pt-BR') : log.km} km</TableCell>
                     <TableCell className="text-right font-headline font-bold text-white pr-8">
-                      R$ {log.totalValue?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      {formatCurrency(log.totalValue || 0)}
                     </TableCell>
                   </TableRow>
                 ))}
