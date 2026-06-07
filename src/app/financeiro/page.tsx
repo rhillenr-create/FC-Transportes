@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
@@ -54,7 +53,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, addDoc, serverTimestamp, query, orderBy, doc, deleteDoc, updateDoc } from "firebase/firestore"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
@@ -63,6 +62,7 @@ const COLORS = ['#00FF88', '#FF4444', '#00BFFF', '#CCFF00', '#FFBB28', '#FF8042'
 
 export default function FinancePage() {
   const db = useFirestore()
+  const { user } = useUser()
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
@@ -85,11 +85,11 @@ export default function FinancePage() {
     date: new Date().toISOString().split('T')[0]
   })
 
-  // Fetch Transactions
+  // Fetch Transactions - Gated by user
   const financeQuery = useMemoFirebase(() => {
-    if (!db) return null
+    if (!db || !user) return null
     return query(collection(db, "financial_entries"), orderBy("date", "desc"))
-  }, [db])
+  }, [db, user])
   const { data: transactions, loading } = useCollection(financeQuery)
 
   // Calculations
@@ -480,16 +480,14 @@ export default function FinancePage() {
                       </div>
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button 
-                          variant="ghost" 
-                          size="icon" 
+                          variant="ghost" size="icon" 
                           onClick={() => handleEdit(t)}
                           className="h-8 w-8 rounded-lg hover:bg-white/10 hover:text-primary"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button 
-                          variant="ghost" 
-                          size="icon" 
+                          variant="ghost" size="icon" 
                           onClick={() => handleDeleteClick(t.id, t.description)}
                           className="h-8 w-8 rounded-lg hover:bg-white/10 hover:text-red-500"
                         >

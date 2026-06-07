@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
@@ -34,25 +33,35 @@ import {
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, query, orderBy, limit } from "firebase/firestore"
 
 export default function DashboardPage() {
   const db = useFirestore()
+  const { user } = useUser()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Fetching Data
-  const trucksQuery = useMemoFirebase(() => collection(db, "trucks"), [db])
+  // Fetching Data - Gated by user for security stability
+  const trucksQuery = useMemoFirebase(() => {
+    if (!db || !user) return null
+    return collection(db, "trucks")
+  }, [db, user])
   const { data: trucks, loading: loadingTrucks } = useCollection(trucksQuery)
 
-  const tripsQuery = useMemoFirebase(() => collection(db, "trips"), [db])
+  const tripsQuery = useMemoFirebase(() => {
+    if (!db || !user) return null
+    return collection(db, "trips")
+  }, [db, user])
   const { data: trips, loading: loadingTrips } = useCollection(tripsQuery)
 
-  const financeQuery = useMemoFirebase(() => collection(db, "financial_entries"), [db])
+  const financeQuery = useMemoFirebase(() => {
+    if (!db || !user) return null
+    return collection(db, "financial_entries")
+  }, [db, user])
   const { data: finance, loading: loadingFinance } = useCollection(financeQuery)
 
   // Stats Calculation

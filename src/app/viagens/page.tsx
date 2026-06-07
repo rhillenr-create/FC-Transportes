@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -58,13 +57,14 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc } from "firebase/firestore"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
 
 export default function TripsPage() {
   const db = useFirestore()
+  const { user } = useUser()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -86,22 +86,25 @@ export default function TripsPage() {
     truck: ""
   })
 
-  // Fetch Trucks for selection
+  // Fetch Trucks - Gated by user
   const trucksQuery = useMemoFirebase(() => {
+    if (!db || !user) return null
     return query(collection(db, "trucks"), orderBy("plate", "asc"))
-  }, [db])
+  }, [db, user])
   const { data: trucks, loading: loadingTrucks } = useCollection(trucksQuery)
 
-  // Fetch Drivers for selection
+  // Fetch Drivers - Gated by user
   const driversQuery = useMemoFirebase(() => {
+    if (!db || !user) return null
     return query(collection(db, "drivers"), orderBy("name", "asc"))
-  }, [db])
+  }, [db, user])
   const { data: drivers, loading: loadingDrivers } = useCollection(driversQuery)
 
-  // Fetch Trips
+  // Fetch Trips - Gated by user
   const tripsQuery = useMemoFirebase(() => {
+    if (!db || !user) return null
     return query(collection(db, "trips"), orderBy("createdAt", "desc"))
-  }, [db])
+  }, [db, user])
   const { data: trips, loading } = useCollection(tripsQuery)
 
   const handleProgramTrip = (e: React.FormEvent) => {

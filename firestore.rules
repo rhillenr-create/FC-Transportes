@@ -1,14 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Regras de Segurança FC Frota - Versão Estabilizada
+    // Regras de Segurança FC Frota - Versão 1.2.5 (Redeploy forçado para estabilidade mobile)
     // Permite acesso total para usuários autenticados em todas as coleções operacionais
     
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
 
-    // Regras explícitas para garantir acesso em dispositivos móveis
+    // Regras explícitas para coleções principais
     match /drivers/{driverId} {
       allow read, write: if request.auth != null;
     }

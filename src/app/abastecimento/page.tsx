@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
@@ -48,13 +47,14 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc } from "firebase/firestore"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
 
 export default function FuelPage() {
   const db = useFirestore()
+  const { user } = useUser()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -78,16 +78,18 @@ export default function FuelPage() {
     km: ""
   })
 
-  // Fetch Trucks for selection
+  // Fetch Trucks for selection - Gated by user
   const trucksQuery = useMemoFirebase(() => {
+    if (!db || !user) return null
     return query(collection(db, "trucks"), orderBy("plate", "asc"))
-  }, [db])
+  }, [db, user])
   const { data: trucks, loading: loadingTrucks } = useCollection(trucksQuery)
 
-  // Fetch Fuel Logs
+  // Fetch Fuel Logs - Gated by user
   const fuelQuery = useMemoFirebase(() => {
+    if (!db || !user) return null
     return query(collection(db, "fuel_entries"), orderBy("createdAt", "desc"))
-  }, [db])
+  }, [db, user])
   const { data: fuelLogs, loading: loadingLogs } = useCollection(fuelQuery)
 
   // Stats calculation
