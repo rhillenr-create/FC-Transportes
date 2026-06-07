@@ -5,6 +5,12 @@
       "description": "Logo oficial da FC Construções e Transportes",
       "imageUrl": "/logo.png",
       "imageHint": "company logo"
+    },
+    {
+      "id": "truck-hero",
+      "description": "Caminhão preto moderno com detalhes neon verde",
+      "imageUrl": "https://picsum.photos/seed/truck1/600/400",
+      "imageHint": "black truck neon"
     }
   ]
 }
