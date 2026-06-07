@@ -1,5 +1,7 @@
+
 "use client"
 
+import { useState } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +25,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
 const trips = [
@@ -32,6 +44,14 @@ const trips = [
 ]
 
 export default function TripsPage() {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const handleProgramTrip = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Simulação de salvamento
+    setIsOpen(false)
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4">
@@ -40,10 +60,73 @@ export default function TripsPage() {
             <h2 className="text-4xl font-headline font-bold text-white tracking-tight">Viagens e Logística</h2>
             <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Controle de fretes e monitoramento de rotas em tempo real</p>
           </div>
-          <Button className="neon-glow font-bold h-12 px-8 rounded-xl bg-primary text-primary-foreground">
-            <Plus className="w-5 h-5 mr-2" />
-            PROGRAMAR VIAGEM
-          </Button>
+          
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+              <Button className="neon-glow font-bold h-12 px-8 rounded-xl bg-primary text-primary-foreground">
+                <Plus className="w-5 h-5 mr-2" />
+                PROGRAMAR VIAGEM
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-white/10 text-white max-w-2xl rounded-[2rem]">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-headline font-bold text-primary">Nova Programação de Viagem</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleProgramTrip} className="space-y-6 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="origin">Origem</Label>
+                    <Input id="origin" placeholder="Cidade, UF" className="bg-white/5 border-white/10" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dest">Destino</Label>
+                    <Input id="dest" placeholder="Cidade, UF" className="bg-white/5 border-white/10" required />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="client">Cliente</Label>
+                    <Input id="client" placeholder="Nome do Cliente/Empresa" className="bg-white/5 border-white/10" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="freight">Valor do Frete</Label>
+                    <Input id="freight" placeholder="R$ 0,00" className="bg-white/5 border-white/10" required />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Motorista</Label>
+                    <Select>
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                        <SelectValue placeholder="Selecionar Motorista" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-white/10 text-white">
+                        <SelectItem value="joao">João Silva</SelectItem>
+                        <SelectItem value="pedro">Pedro Santos</SelectItem>
+                        <SelectItem value="marcos">Marcos Paulo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Veículo</Label>
+                    <Select>
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                        <SelectValue placeholder="Selecionar Caminhão" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-white/10 text-white">
+                        <SelectItem value="abc">Volvo FH 540 (ABC-1234)</SelectItem>
+                        <SelectItem value="xyz">Scania R 450 (XYZ-9876)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter className="pt-4">
+                  <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-white">Cancelar</Button>
+                  <Button type="submit" className="bg-primary text-primary-foreground neon-glow font-bold px-8">SALVAR E INICIAR</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -71,7 +154,7 @@ export default function TripsPage() {
           <div className="p-8 border-b border-white/5">
             <div className="relative w-full max-w-lg">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por motorista, cliente ou rota..." className="pl-12 h-12 bg-white/5 border-white/10 rounded-xl" />
+              <input placeholder="Buscar por motorista, cliente ou rota..." className="pl-12 h-12 w-full bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary/40 text-white" />
             </div>
           </div>
           <div className="overflow-x-auto">

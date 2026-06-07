@@ -1,6 +1,7 @@
 
 "use client"
 
+import { useState } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -22,6 +23,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
 const fuelLogs = [
   { id: 1, truck: "ABC-1234", date: "18/05/2024", liters: "320L", type: "S10", station: "Posto Graal", total: "R$ 1.856,00" },
@@ -30,6 +42,13 @@ const fuelLogs = [
 ]
 
 export default function FuelPage() {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const handleAddFuel = (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsOpen(false)
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -38,10 +57,71 @@ export default function FuelPage() {
             <h2 className="text-3xl font-headline font-bold text-white">Controle de Abastecimento</h2>
             <p className="text-muted-foreground">Monitore o consumo e gastos com combustível da frota.</p>
           </div>
-          <Button className="neon-glow font-bold">
-            <Plus className="w-4 h-4 mr-2" />
-            REGISTRAR ABASTECIMENTO
-          </Button>
+          
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+              <Button className="neon-glow font-bold">
+                <Plus className="w-4 h-4 mr-2" />
+                REGISTRAR ABASTECIMENTO
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-white/10 text-white max-w-xl rounded-[2rem]">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-headline font-bold text-primary">Novo Registro de Abastecimento</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleAddFuel} className="space-y-6 py-4">
+                <div className="space-y-2">
+                  <Label>Veículo</Label>
+                  <Select>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectValue placeholder="Selecione o caminhão" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-white/10 text-white">
+                      <SelectItem value="abc">ABC-1234 (Volvo FH 540)</SelectItem>
+                      <SelectItem value="xyz">XYZ-9876 (Scania R 450)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="liters">Litros</Label>
+                    <Input id="liters" type="number" placeholder="0.00" className="bg-white/5 border-white/10" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Valor Total</Label>
+                    <Input id="price" placeholder="R$ 0,00" className="bg-white/5 border-white/10" required />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Tipo de Diesel</Label>
+                    <Select>
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                        <SelectValue placeholder="Tipo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-white/10 text-white">
+                        <SelectItem value="s10">Diesel S10</SelectItem>
+                        <SelectItem value="s500">Diesel S500</SelectItem>
+                        <SelectItem value="arla">Arla 32</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="station">Posto</Label>
+                    <Input id="station" placeholder="Nome do Posto" className="bg-white/5 border-white/10" required />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="km">KM Atual</Label>
+                  <Input id="km" type="number" placeholder="0" className="bg-white/5 border-white/10" required />
+                </div>
+                <DialogFooter className="pt-4">
+                  <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-white">Cancelar</Button>
+                  <Button type="submit" className="bg-primary text-primary-foreground neon-glow font-bold px-8">SALVAR REGISTRO</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -88,7 +168,7 @@ export default function FuelPage() {
             </h3>
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Filtrar por placa..." className="pl-10 bg-white/5 h-9" />
+              <Input placeholder="Filtrar por placa..." className="pl-10 bg-white/5 h-9 border-white/10" />
             </div>
           </div>
           <Table>
