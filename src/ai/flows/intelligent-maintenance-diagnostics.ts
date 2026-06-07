@@ -1,10 +1,10 @@
 'use server';
 /**
- * @fileOverview A Genkit flow for analyzing pre-trip checklist results to provide diagnostic insights and maintenance recommendations.
+ * @fileOverview Um fluxo Genkit para analisar resultados de checklist pré-viagem para fornecer insights diagnósticos e recomendações de manutenção.
  *
- * - intelligentMaintenanceDiagnostics - A function that initiates the diagnostic process.
- * - IntelligentMaintenanceDiagnosticsInput - The input type for the intelligentMaintenanceDiagnostics function.
- * - IntelligentMaintenanceDiagnosticsOutput - The return type for the intelligentMaintenanceDiagnostics function.
+ * - intelligentMaintenanceDiagnostics - Uma função que inicia o processo de diagnóstico.
+ * - IntelligentMaintenanceDiagnosticsInput - O tipo de entrada para a função intelligentMaintenanceDiagnostics.
+ * - IntelligentMaintenanceDiagnosticsOutput - O tipo de retorno para a função intelligentMaintenanceDiagnostics.
  */
 
 import { ai } from '@/ai/genkit';
@@ -14,13 +14,13 @@ const IntelligentMaintenanceDiagnosticsInputSchema = z.object({
   checklistLog: z
     .string()
     .describe(
-      'A detailed log from the pre-trip checklist, including driver observations and status of various items (e.g., "Pneus OK", "Vazamentos: problema, óleo no motor").'
+      'Um log detalhado do checklist pré-viagem, incluindo observações do motorista e status de vários itens (ex: "Pneus OK", "Vazamentos: problema, óleo no motor").'
     ),
   photoDataUris: z
     .array(z.string())
     .optional()
     .describe(
-      "An optional array of photos, as data URIs that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'. These photos document identified problems."
+      "Um array opcional de fotos, como URIs de dados em Base64. Estas fotos documentam problemas identificados."
     ),
 });
 export type IntelligentMaintenanceDiagnosticsInput = z.infer<
@@ -31,17 +31,17 @@ const IntelligentMaintenanceDiagnosticsOutputSchema = z.object({
   diagnosticInsights: z
     .string()
     .describe(
-      'A concise summary of identified potential issues and their likely causes based on the checklist log and photos.'
+      'Um resumo conciso em PORTUGUÊS dos problemas identificados e suas prováveis causas com base no log e nas fotos.'
     ),
   maintenanceRecommendations: z
     .string()
     .describe(
-      'Actionable and predictive maintenance recommendations to address the identified issues and prevent future problems.'
+      'Recomendações de manutenção acionáveis e preditivas em PORTUGUÊS para resolver os problemas identificados.'
     ),
   severity: z
     .enum(['low', 'medium', 'high', 'critical'])
     .describe(
-      "The urgency level of the detected issues, indicating how soon maintenance is required. ('low', 'medium', 'high', 'critical')"
+      "O nível de urgência dos problemas detectados ('low', 'medium', 'high', 'critical')"
     ),
 });
 export type IntelligentMaintenanceDiagnosticsOutput = z.infer<
@@ -58,24 +58,26 @@ const diagnosticPrompt = ai.definePrompt({
   name: 'intelligentMaintenanceDiagnosticPrompt',
   input: { schema: IntelligentMaintenanceDiagnosticsInputSchema },
   output: { schema: IntelligentMaintenanceDiagnosticsOutputSchema },
-  prompt: `You are an expert fleet maintenance diagnostic system. Your task is to analyze pre-trip checklist results, including driver observations and any accompanying photos, to provide concise diagnostic insights and predictive maintenance recommendations for a truck. Based on your analysis, assign a severity level to the identified issues.
+  prompt: `Você é um sistema especializado em diagnóstico de manutenção de frotas de caminhões. Sua tarefa é analisar os resultados do checklist pré-viagem, incluindo as observações do motorista e quaisquer fotos enviadas, para fornecer insights diagnósticos concisos e recomendações de manutenção preditiva. 
 
-Pre-trip Checklist Log:
+IMPORTANTE: Toda a sua resposta nos campos de texto deve ser em PORTUGUÊS (Brasil).
+
+Log do Checklist Pré-Viagem:
 {{{checklistLog}}}
 
 {{#if photoDataUris}}
-Photos documenting identified problems:
+Fotos documentando os problemas identificados:
 {{#each photoDataUris}}
   {{media url=this}}
 {{/each}}
 {{/if}}
 
-Consider all provided information to generate:
-1.  **diagnosticInsights**: A clear and concise summary of potential issues and their likely causes. This should be based directly on the checklist log and analysis of any provided images.
-2.  **maintenanceRecommendations**: Specific, actionable, and predictive steps for maintenance. These recommendations should aim to address current problems and prevent future issues.
-3.  **severity**: An urgency level for the maintenance, choosing from 'low', 'medium', 'high', or 'critical'.
+Considere todas as informações fornecidas para gerar:
+1.  **diagnosticInsights**: Um resumo claro e conciso em PORTUGUÊS dos problemas potenciais e suas causas prováveis.
+2.  **maintenanceRecommendations**: Passos específicos, acionáveis e preditivos para a manutenção em PORTUGUÊS.
+3.  **severity**: Um nível de urgência, escolhendo entre 'low' (baixo), 'medium' (médio), 'high' (alto) ou 'critical' (crítico).
 
-Provide your response in JSON format.`,
+Forneça sua resposta no formato JSON conforme o esquema de saída.`,
 });
 
 const intelligentMaintenanceDiagnosticsFlow = ai.defineFlow(
@@ -87,7 +89,7 @@ const intelligentMaintenanceDiagnosticsFlow = ai.defineFlow(
   async (input) => {
     const { output } = await diagnosticPrompt(input);
     if (!output) {
-      throw new Error('Failed to generate diagnostic insights and recommendations.');
+      throw new Error('Falha ao gerar insights e recomendações de manutenção.');
     }
     return output;
   }
