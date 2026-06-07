@@ -13,7 +13,7 @@ export function PageHeader({ title, description, className }: PageHeaderProps) {
       <div className="flex items-center gap-4">
         <div className="relative h-16 w-16 rounded-[2rem] overflow-hidden border border-white/10 bg-white/5 shadow-[0_20px_80px_rgba(0,255,136,0.12)]">
           <Image
-            src="/fc-transportes-icon.svg"
+            src="/icon.png"
             alt="Ícone FC Transportes"
             fill
             className="object-cover"
