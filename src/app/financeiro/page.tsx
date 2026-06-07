@@ -1,5 +1,7 @@
+
 "use client"
 
+import { useState } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
@@ -7,8 +9,7 @@ import {
   TrendingUp, 
   TrendingDown, 
   Wallet,
-  ArrowUpRight,
-  ArrowDownRight,
+  Plus,
   ChevronRight
 } from "lucide-react"
 import { 
@@ -24,6 +25,18 @@ import {
   Tooltip,
   Legend
 } from 'recharts'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const dataPie = [
@@ -43,6 +56,13 @@ const cashflowData = [
 ]
 
 export default function FinancePage() {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const handleAddTransaction = (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsOpen(false)
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4">
@@ -53,7 +73,69 @@ export default function FinancePage() {
           </div>
           <div className="flex gap-4">
              <button className="px-6 h-12 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all">Exportar Relatórios</button>
-             <button className="px-6 h-12 rounded-xl bg-primary text-primary-foreground neon-glow text-xs font-bold uppercase tracking-widest">Nova Transação</button>
+             
+             <Dialog open={isOpen} onOpenChange={setIsOpen}>
+               <DialogTrigger asChild>
+                 <Button className="neon-glow font-bold h-12 px-8 rounded-xl bg-primary text-primary-foreground">
+                   <Plus className="w-5 h-5 mr-2" />
+                   NOVA TRANSAÇÃO
+                 </Button>
+               </DialogTrigger>
+               <DialogContent className="bg-card border-white/10 text-white max-w-xl rounded-[2rem]">
+                 <DialogHeader>
+                   <DialogTitle className="text-2xl font-headline font-bold text-primary">Nova Transação Financeira</DialogTitle>
+                 </DialogHeader>
+                 <form onSubmit={handleAddTransaction} className="space-y-6 py-4">
+                   <div className="space-y-2">
+                     <Label htmlFor="description">Descrição</Label>
+                     <Input id="description" placeholder="Ex: Pagamento Frete Agro S/A" className="bg-white/5 border-white/10" required />
+                   </div>
+                   <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                       <Label>Tipo</Label>
+                       <Select>
+                         <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                           <SelectValue placeholder="Selecione" />
+                         </SelectTrigger>
+                         <SelectContent className="bg-card border-white/10 text-white">
+                           <SelectItem value="entry">Entrada (Receita)</SelectItem>
+                           <SelectItem value="exit">Saída (Despesa)</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="value">Valor</Label>
+                       <Input id="value" placeholder="R$ 0,00" className="bg-white/5 border-white/10" required />
+                     </div>
+                   </div>
+                   <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                       <Label>Categoria</Label>
+                       <Select>
+                         <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                           <SelectValue placeholder="Categoria" />
+                         </SelectTrigger>
+                         <SelectContent className="bg-card border-white/10 text-white">
+                           <SelectItem value="fuel">Combustível</SelectItem>
+                           <SelectItem value="maint">Manutenção</SelectItem>
+                           <SelectItem value="freight">Frete / Viagem</SelectItem>
+                           <SelectItem value="salary">Salários</SelectItem>
+                           <SelectItem value="tax">Impostos</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="date">Data</Label>
+                       <Input id="date" type="date" className="bg-white/5 border-white/10" required />
+                     </div>
+                   </div>
+                   <DialogFooter className="pt-4">
+                     <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-white">Cancelar</Button>
+                     <Button type="submit" className="bg-primary text-primary-foreground neon-glow font-bold px-8">REGISTRAR</Button>
+                   </DialogFooter>
+                 </form>
+               </DialogContent>
+             </Dialog>
           </div>
         </div>
 
