@@ -82,6 +82,12 @@ export default function TripsPage() {
   }, [db])
   const { data: trucks, loading: loadingTrucks } = useCollection(trucksQuery)
 
+  // Fetch Drivers for selection
+  const driversQuery = useMemoFirebase(() => {
+    return query(collection(db, "drivers"), orderBy("name", "asc"))
+  }, [db])
+  const { data: drivers, loading: loadingDrivers } = useCollection(driversQuery)
+
   // Fetch Trips
   const tripsQuery = useMemoFirebase(() => {
     return query(collection(db, "trips"), orderBy("createdAt", "desc"))
@@ -92,6 +98,10 @@ export default function TripsPage() {
     e.preventDefault()
     if (!formData.truck) {
       toast({ variant: "destructive", title: "Erro", description: "Selecione um veículo." })
+      return
+    }
+    if (!formData.driver) {
+      toast({ variant: "destructive", title: "Erro", description: "Selecione um motorista." })
       return
     }
 
@@ -260,13 +270,19 @@ export default function TripsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Motorista</Label>
-                    <Input 
-                      placeholder="Nome do Motorista" 
-                      className="bg-white/5 border-white/10" 
-                      value={formData.driver}
-                      onChange={(e) => setFormData({...formData, driver: e.target.value})}
-                      required 
-                    />
+                    <Select value={formData.driver} onValueChange={(v) => setFormData({...formData, driver: v})}>
+                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                        <SelectValue placeholder={loadingDrivers ? "Carregando..." : "Selecionar Motorista"} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-white/10 text-white">
+                        {drivers?.map(driver => (
+                          <SelectItem key={driver.id} value={driver.name}>{driver.name}</SelectItem>
+                        ))}
+                        {(!loadingDrivers && (!drivers || drivers.length === 0)) && (
+                          <SelectItem value="none" disabled>Nenhum motorista cadastrado</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Veículo</Label>
