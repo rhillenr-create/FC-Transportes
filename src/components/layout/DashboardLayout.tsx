@@ -1,16 +1,37 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sidebar } from "./Sidebar"
-import { Bell, User, Search, Calendar, ChevronDown, Menu, X, Info } from "lucide-react"
+import { Bell, User, Search, Menu, X, Info, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useUser } from "@/firebase"
+import { useRouter } from "next/navigation"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useUser()
+  const router = useRouter()
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  // Auth Guard: Redireciona se não estiver logado
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/")
+    }
+  }, [user, loading, router])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#040505] flex items-center justify-center">
+        <Loader2 className="h-12 w-12 text-primary animate-spin opacity-20" />
+      </div>
+    )
+  }
+
+  if (!user) return null
 
   return (
     <div className="min-h-screen bg-[#040505] flex">
