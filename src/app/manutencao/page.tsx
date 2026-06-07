@@ -35,6 +35,16 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -52,6 +62,8 @@ export default function MaintenancePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [recordToDelete, setRecordToDelete] = useState<{id: string, truck: string, service: string} | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -89,7 +101,6 @@ export default function MaintenancePage() {
       if (curr.status === 'scheduled') acc.scheduled++
       if (curr.status === 'completed') acc.completed++
       
-      // Somamos o custo de todos os registros (estimado ou real)
       acc.totalCost += Number(curr.cost || 0)
       
       return acc
@@ -112,7 +123,6 @@ export default function MaintenancePage() {
     }
 
     if (editingId) {
-      // UPDATE
       updateDoc(doc(db, "maintenance_entries", editingId), payload)
         .then(() => {
           setIsOpen(false)
@@ -129,7 +139,6 @@ export default function MaintenancePage() {
         })
         .finally(() => setIsSubmitting(false))
     } else {
-      // CREATE
       addDoc(collection(db, "maintenance_entries"), { ...payload, createdAt: serverTimestamp() })
         .then(() => {
           setIsOpen(false)
@@ -175,17 +184,28 @@ export default function MaintenancePage() {
     setIsOpen(true)
   }
 
-  const handleDeleteMaintenance = (id: string) => {
-    deleteDoc(doc(db, "maintenance_entries", id))
+  const handleDeleteClick = (id: string, truck: string, service: string) => {
+    setRecordToDelete({ id, truck, service })
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (!recordToDelete) return
+
+    deleteDoc(doc(db, "maintenance_entries", recordToDelete.id))
       .then(() => {
         toast({ title: "Registro Removido", description: "A manutenção foi excluída do histórico." })
       })
       .catch(async () => {
         const permissionError = new FirestorePermissionError({
-          path: `maintenance_entries/${id}`,
+          path: `maintenance_entries/${recordToDelete.id}`,
           operation: "delete"
         })
         errorEmitter.emit("permission-error", permissionError)
+      })
+      .finally(() => {
+        setIsDeleteDialogOpen(false)
+        setRecordToDelete(null)
       })
   }
 
@@ -402,7 +422,7 @@ export default function MaintenancePage() {
                   <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">Serviço</TableHead>
                   <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">Status</TableHead>
                   <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">Data</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-bold text-muted-foreground pr-8">Custo</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-bold text-muted-foreground pr-8">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -463,7 +483,7 @@ export default function MaintenancePage() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => handleDeleteMaintenance(record.id)}
+                            onClick={() => handleDeleteClick(record.id, record.truckId, record.service)}
                             className="h-8 w-8 rounded-lg hover:bg-white/10 hover:text-red-500"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -477,6 +497,26 @@ export default function MaintenancePage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="bg-card border-white/10 text-white rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-headline font-bold text-primary">Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Você tem certeza que deseja excluir o registro de manutenção do veículo <strong>{recordToDelete?.truck}</strong> ({recordToDelete?.service})? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-500 text-white hover:bg-red-600 neon-glow font-bold rounded-xl"
+            >
+              EXCLUIR REGISTRO
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   )
 }

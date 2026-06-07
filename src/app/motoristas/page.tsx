@@ -8,13 +8,11 @@ import { Input } from "@/components/ui/input"
 import { 
   Plus, 
   Search, 
-  User, 
   Trash2, 
   Star, 
   ShieldCheck, 
   Loader2,
-  Edit,
-  ChevronLeft
+  Edit
 } from "lucide-react"
 import {
   Table,
@@ -32,6 +30,16 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -50,6 +58,8 @@ export default function DriversPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [recordToDelete, setRecordToDelete] = useState<{id: string, name: string} | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -93,6 +103,34 @@ export default function DriversPage() {
     setIsOpen(true)
   }
 
+  const handleDeleteClick = (id: string, name: string) => {
+    setRecordToDelete({ id, name })
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (!recordToDelete) return
+
+    deleteDoc(doc(db, "drivers", recordToDelete.id))
+      .then(() => {
+        toast({
+          title: "Cadastro Removido",
+          description: `O motorista ${recordToDelete.name} foi excluído do sistema.`
+        })
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: `drivers/${recordToDelete.id}`,
+          operation: "delete"
+        })
+        errorEmitter.emit("permission-error", permissionError)
+      })
+      .finally(() => {
+        setIsDeleteDialogOpen(false)
+        setRecordToDelete(null)
+      })
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -104,7 +142,6 @@ export default function DriversPage() {
     }
 
     if (editingId) {
-      // Update
       updateDoc(doc(db, "drivers", editingId), payload)
         .then(() => {
           setIsOpen(false)
@@ -124,7 +161,6 @@ export default function DriversPage() {
         })
         .finally(() => setIsSubmitting(false))
     } else {
-      // Create
       const newPayload = { ...payload, createdAt: serverTimestamp() }
       addDoc(collection(db, "drivers"), newPayload)
         .then(() => {
@@ -145,23 +181,6 @@ export default function DriversPage() {
         })
         .finally(() => setIsSubmitting(false))
     }
-  }
-
-  const handleDeleteDriver = (id: string) => {
-    deleteDoc(doc(db, "drivers", id))
-      .then(() => {
-        toast({
-          title: "Cadastro Removido",
-          description: "O motorista foi excluído do sistema."
-        })
-      })
-      .catch(async () => {
-        const permissionError = new FirestorePermissionError({
-          path: `drivers/${id}`,
-          operation: "delete"
-        })
-        errorEmitter.emit("permission-error", permissionError)
-      })
   }
 
   const filteredDrivers = drivers?.filter(d => 
@@ -359,7 +378,7 @@ export default function DriversPage() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => handleDeleteDriver(driver.id)}
+                          onClick={() => handleDeleteClick(driver.id, driver.name)}
                           className="h-10 w-10 rounded-xl hover:bg-white/10 hover:text-red-500 transition-colors"
                         >
                           <Trash2 className="h-5 w-5" />
@@ -373,6 +392,26 @@ export default function DriversPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="bg-card border-white/10 text-white rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-headline font-bold text-primary">Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Você tem certeza que deseja excluir o motorista <strong>{recordToDelete?.name}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-500 text-white hover:bg-red-600 neon-glow font-bold rounded-xl"
+            >
+              EXCLUIR CADASTRO
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   )
 }

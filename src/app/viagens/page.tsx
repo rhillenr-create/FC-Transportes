@@ -16,8 +16,6 @@ import {
   Clock,
   Navigation,
   ArrowRight,
-  Eye,
-  Edit,
   Trash2,
   CheckCircle,
   Loader2
@@ -46,6 +44,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
@@ -61,6 +69,8 @@ export default function TripsPage() {
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [tripToDelete, setTripToDelete] = useState<{id: string, route: string} | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -141,8 +151,15 @@ export default function TripsPage() {
       .finally(() => setIsSubmitting(false))
   }
 
-  const handleDeleteTrip = (id: string) => {
-    deleteDoc(doc(db, "trips", id))
+  const handleDeleteClick = (id: string, origin: string, dest: string) => {
+    setTripToDelete({ id, route: `${origin} → ${dest}` })
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (!tripToDelete) return
+
+    deleteDoc(doc(db, "trips", tripToDelete.id))
       .then(() => {
         toast({
           title: "Viagem Excluída",
@@ -151,10 +168,14 @@ export default function TripsPage() {
       })
       .catch(async () => {
         const permissionError = new FirestorePermissionError({
-          path: `trips/${id}`,
+          path: `trips/${tripToDelete.id}`,
           operation: "delete"
         })
         errorEmitter.emit("permission-error", permissionError)
+      })
+      .finally(() => {
+        setIsDeleteDialogOpen(false)
+        setTripToDelete(null)
       })
   }
 
@@ -436,7 +457,7 @@ export default function TripsPage() {
                             <CheckCircle className="h-4 w-4 text-accent" /> Finalizar
                           </DropdownMenuItem>
                           <DropdownMenuSeparator className="bg-white/5" />
-                          <DropdownMenuItem onClick={() => handleDeleteTrip(trip.id)} className="gap-2 cursor-pointer text-red-500 hover:bg-red-500/10 focus:bg-red-500/10">
+                          <DropdownMenuItem onClick={() => handleDeleteClick(trip.id, trip.origin, trip.destination)} className="gap-2 cursor-pointer text-red-500 hover:bg-red-500/10 focus:bg-red-500/10">
                             <Trash2 className="h-4 w-4" /> Excluir
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -449,6 +470,26 @@ export default function TripsPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="bg-card border-white/10 text-white rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-headline font-bold text-primary">Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Você tem certeza que deseja excluir o registro da viagem <strong>{tripToDelete?.route}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-500 text-white hover:bg-red-600 neon-glow font-bold rounded-xl"
+            >
+              EXCLUIR VIAGEM
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   )
 }
