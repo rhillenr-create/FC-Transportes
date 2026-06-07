@@ -15,6 +15,7 @@ import {
   Stethoscope,
   ChevronLeft,
   X,
+  CheckCircle,
   Image as ImageIcon
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
@@ -46,6 +47,18 @@ export default function ChecklistPage() {
 
   const handleStatusChange = (id: string, status: 'ok' | 'issue') => {
     setResults(prev => ({ ...prev, [id]: status }))
+  }
+
+  const markAllOk = () => {
+    const allOk: Record<string, 'ok'> = {}
+    checklistItems.forEach(item => {
+      allOk[item.id] = 'ok'
+    })
+    setResults(allOk)
+    toast({
+      title: "Checklist Atualizado",
+      description: "Todos os itens foram marcados como OK."
+    })
   }
 
   const handleFileChange = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,6 +93,17 @@ export default function ChecklistPage() {
   }
 
   const handleFinalize = async () => {
+    // Validar se todos os itens foram preenchidos
+    const missingItems = checklistItems.filter(item => !results[item.id])
+    if (missingItems.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Checklist Incompleto",
+        description: `Por favor, responda todos os itens antes de finalizar. Faltam: ${missingItems.length} item(ns).`
+      })
+      return
+    }
+
     setIsAnalyzing(true)
     
     const log = checklistItems.map(item => {
@@ -88,7 +112,6 @@ export default function ChecklistPage() {
       return `${item.label}: ${status}${obs}`
     }).join('\n')
 
-    // Coleta todas as fotos de todos os itens
     const allPhotoUris = Object.values(photos).flat()
 
     try {
@@ -99,14 +122,15 @@ export default function ChecklistPage() {
       setAiAnalysis(diagnosis)
       setStep('result')
       toast({
-        title: "Checklist Finalizado",
-        description: "Diagnóstico inteligente gerado com sucesso."
+        title: "Sucesso!",
+        description: "Diagnóstico gerado com sucesso pela nossa IA."
       })
     } catch (error) {
+      console.error("Erro AI:", error)
       toast({
         variant: "destructive",
         title: "Erro na análise",
-        description: "Não foi possível gerar o diagnóstico de IA."
+        description: "Ocorreu uma falha ao processar o diagnóstico. Tente novamente."
       })
     } finally {
       setIsAnalyzing(false)
@@ -196,17 +220,30 @@ export default function ChecklistPage() {
     )
   }
 
+  const allAnswered = Object.keys(results).length === checklistItems.length
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 px-4 pb-20">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => setStep('start')} className="rounded-full bg-white/5 border border-white/10 lg:hidden">
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h2 className="text-2xl md:text-3xl font-headline font-bold text-white tracking-tight">Formulário de Inspeção</h2>
-            <p className="text-muted-foreground text-xs uppercase tracking-widest font-medium">Verificação detalhada de componentes</p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => setStep('start')} className="rounded-full bg-white/5 border border-white/10 lg:hidden">
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-headline font-bold text-white tracking-tight">Formulário de Inspeção</h2>
+              <p className="text-muted-foreground text-xs uppercase tracking-widest font-medium">Verificação detalhada de componentes</p>
+            </div>
           </div>
+          
+          <Button 
+            variant="outline" 
+            onClick={markAllOk} 
+            className="rounded-xl border-primary/20 hover:bg-primary/10 hover:text-primary font-bold text-[10px] uppercase tracking-widest"
+          >
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Marcar tudo como OK
+          </Button>
         </div>
 
         <div className="space-y-4 md:space-y-6">
@@ -301,9 +338,12 @@ export default function ChecklistPage() {
         <div className="pt-10 pb-20 flex justify-end">
           <Button 
             size="lg" 
-            className="h-16 px-16 text-lg font-bold neon-glow w-full md:w-auto rounded-[2rem]"
+            className={cn(
+              "h-16 px-16 text-lg font-bold w-full md:w-auto rounded-[2rem] transition-all",
+              allAnswered ? "neon-glow bg-primary text-primary-foreground" : "bg-white/5 text-muted-foreground grayscale"
+            )}
             onClick={handleFinalize}
-            disabled={isAnalyzing || Object.keys(results).length < checklistItems.length}
+            disabled={isAnalyzing}
           >
             {isAnalyzing ? (
               <>
