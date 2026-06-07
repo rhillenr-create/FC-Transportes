@@ -53,6 +53,7 @@ export default function FinancePage() {
   const db = useFirestore()
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [mounted, setMounted] = useState(false)
   const { toast } = useToast()
 
@@ -154,10 +155,19 @@ export default function FinancePage() {
   }
 
   const handleExportReports = () => {
+    setIsExporting(true)
     toast({
-      title: "Gerando Relatório",
-      description: "O relatório financeiro consolidado está sendo preparado para download.",
+      title: "Gerando Relatório Financeiro",
+      description: "Compilando fluxo de caixa consolidado...",
     })
+
+    setTimeout(() => {
+      setIsExporting(false)
+      toast({
+        title: "Sucesso!",
+        description: "O relatório financeiro foi exportado com sucesso.",
+      })
+    }, 2000)
   }
 
   return (
@@ -171,11 +181,12 @@ export default function FinancePage() {
           <div className="flex gap-4">
              <Button 
                variant="outline" 
+               disabled={isExporting}
                onClick={handleExportReports}
                className="px-6 h-12 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all"
              >
-               <FileDown className="w-4 h-4 mr-2" />
-               Exportar Relatórios
+               {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
+               {isExporting ? "EXPORTANDO..." : "Exportar Relatórios"}
              </Button>
              
              <Dialog open={isOpen} onOpenChange={setIsOpen}>

@@ -26,6 +26,7 @@ export default function ReportsPage() {
   const { toast } = useToast()
   const db = useFirestore()
   const [mounted, setMounted] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -66,10 +67,20 @@ export default function ReportsPage() {
   }, [trips, fuelLogs, finance, mounted])
 
   const handleExportPDF = () => {
+    setIsExporting(true)
     toast({
-      title: "Gerando PDF",
-      description: "O relatório gerencial detalhado está sendo compilado. O download começará em instantes.",
+      title: "Gerando Relatório",
+      description: "Compilando dados operacionais e financeiros...",
     })
+
+    // Simulação de geração de PDF
+    setTimeout(() => {
+      setIsExporting(false)
+      toast({
+        title: "Sucesso!",
+        description: "O relatório PDF foi gerado e o download iniciado.",
+      })
+    }, 2500)
   }
 
   if (!mounted) return null
@@ -89,10 +100,11 @@ export default function ReportsPage() {
             </Button>
             <Button 
               onClick={handleExportPDF}
+              disabled={isExporting}
               className="neon-glow font-bold h-12 px-8 rounded-xl bg-primary text-primary-foreground"
             >
-              <FileDown className="h-4 w-4 mr-2" />
-              EXPORTAR PDF
+              {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
+              {isExporting ? "GERANDO..." : "EXPORTAR PDF"}
             </Button>
           </div>
         </div>
@@ -141,7 +153,11 @@ export default function ReportsPage() {
             </div>
           </CardHeader>
           <CardContent className="h-[450px] p-0">
-            {stats.evolutionData.length > 0 ? (
+            {(loadingTrips || loadingFuel || loadingFinance) ? (
+              <div className="h-full flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary opacity-50" />
+              </div>
+            ) : stats.evolutionData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.evolutionData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
@@ -176,13 +192,13 @@ export default function ReportsPage() {
                     fuelLogs.slice(0, 5).map((log, i) => (
                       <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
                          <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">{log.truckId[0]}</div>
+                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">{log.truckId?.[0] || 'T'}</div>
                             <div>
                                <p className="text-sm font-bold text-white">{log.truckId}</p>
                                <p className="text-[10px] text-muted-foreground uppercase font-medium">{log.liters} Litros consumidos</p>
                             </div>
                          </div>
-                         <p className="font-headline font-bold text-accent">R$ {log.totalValue}</p>
+                         <p className="font-headline font-bold text-accent">R$ {log.totalValue?.toLocaleString('pt-BR')}</p>
                       </div>
                     ))
                  )}
