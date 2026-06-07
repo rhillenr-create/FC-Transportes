@@ -15,7 +15,9 @@ import {
   Settings2,
   Calendar,
   Loader2,
-  Trash2
+  Trash2,
+  Edit,
+  DollarSign
 } from "lucide-react"
 import {
   Table,
@@ -49,6 +51,7 @@ export default function MaintenancePage() {
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -84,15 +87,16 @@ export default function MaintenancePage() {
     return maintenanceRecords.reduce((acc, curr: any) => {
       if (curr.type === 'corrective' && curr.status === 'scheduled') acc.urgent++
       if (curr.status === 'scheduled') acc.scheduled++
-      if (curr.status === 'completed') {
-        acc.completed++
-        acc.totalCost += Number(curr.cost || 0)
-      }
+      if (curr.status === 'completed') acc.completed++
+      
+      // Somamos o custo de todos os registros (estimado ou real)
+      acc.totalCost += Number(curr.cost || 0)
+      
       return acc
     }, { urgent: 0, scheduled: 0, completed: 0, totalCost: 0 })
   }, [maintenanceRecords])
 
-  const handleScheduleMaintenance = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.truckId) {
       toast({ variant: "destructive", title: "Erro", description: "Selecione um veículo." })
@@ -104,35 +108,71 @@ export default function MaintenancePage() {
     const payload = {
       ...formData,
       cost: Number(formData.cost),
-      createdAt: serverTimestamp()
+      updatedAt: serverTimestamp()
     }
 
-    addDoc(collection(db, "maintenance_entries"), payload)
-      .then(() => {
-        setIsOpen(false)
-        setFormData({
-          truckId: "",
-          type: "preventive",
-          date: new Date().toISOString().split('T')[0],
-          service: "",
-          observations: "",
-          cost: "0",
-          status: "scheduled"
+    if (editingId) {
+      // UPDATE
+      updateDoc(doc(db, "maintenance_entries", editingId), payload)
+        .then(() => {
+          setIsOpen(false)
+          resetForm()
+          toast({ title: "Registro Atualizado", description: "As alterações foram salvas com sucesso." })
         })
-        toast({
-          title: "Manutenção Agendada",
-          description: "O serviço foi registrado no cronograma operacional."
+        .catch(async () => {
+          const permissionError = new FirestorePermissionError({
+            path: `maintenance_entries/${editingId}`,
+            operation: "update",
+            requestResourceData: payload
+          })
+          errorEmitter.emit("permission-error", permissionError)
         })
-      })
-      .catch(async () => {
-        const permissionError = new FirestorePermissionError({
-          path: "maintenance_entries",
-          operation: "create",
-          requestResourceData: payload
+        .finally(() => setIsSubmitting(false))
+    } else {
+      // CREATE
+      addDoc(collection(db, "maintenance_entries"), { ...payload, createdAt: serverTimestamp() })
+        .then(() => {
+          setIsOpen(false)
+          resetForm()
+          toast({ title: "Manutenção Agendada", description: "O serviço foi registrado no cronograma operacional." })
         })
-        errorEmitter.emit("permission-error", permissionError)
-      })
-      .finally(() => setIsSubmitting(false))
+        .catch(async () => {
+          const permissionError = new FirestorePermissionError({
+            path: "maintenance_entries",
+            operation: "create",
+            requestResourceData: payload
+          })
+          errorEmitter.emit("permission-error", permissionError)
+        })
+        .finally(() => setIsSubmitting(false))
+    }
+  }
+
+  const resetForm = () => {
+    setEditingId(null)
+    setFormData({
+      truckId: "",
+      type: "preventive",
+      date: new Date().toISOString().split('T')[0],
+      service: "",
+      observations: "",
+      cost: "0",
+      status: "scheduled"
+    })
+  }
+
+  const handleEdit = (record: any) => {
+    setEditingId(record.id)
+    setFormData({
+      truckId: record.truckId,
+      type: record.type,
+      date: record.date,
+      service: record.service,
+      observations: record.observations || "",
+      cost: record.cost.toString(),
+      status: record.status
+    })
+    setIsOpen(true)
   }
 
   const handleDeleteMaintenance = (id: string) => {
@@ -187,7 +227,7 @@ export default function MaintenancePage() {
             <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Gerencie revisões preventivas e reparos emergenciais da frota</p>
           </div>
           
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <Dialog open={isOpen} onOpenChange={(open) => { if(!open) resetForm(); setIsOpen(open); }}>
             <DialogTrigger asChild>
               <Button className="neon-glow font-bold h-12 px-8 rounded-xl bg-primary text-primary-foreground">
                 <Plus className="w-5 h-5 mr-2" />
@@ -196,9 +236,11 @@ export default function MaintenancePage() {
             </DialogTrigger>
             <DialogContent className="bg-card border-white/10 text-white max-w-xl rounded-[2rem]">
               <DialogHeader>
-                <DialogTitle className="text-2xl font-headline font-bold text-primary">Novo Agendamento de Manutenção</DialogTitle>
+                <DialogTitle className="text-2xl font-headline font-bold text-primary">
+                  {editingId ? "Editar Registro de Manutenção" : "Novo Agendamento de Manutenção"}
+                </DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleScheduleMaintenance} className="space-y-6 py-4">
+              <form onSubmit={handleSubmit} className="space-y-6 py-4">
                 <div className="space-y-2">
                   <Label>Veículo</Label>
                   <Select value={formData.truckId} onValueChange={(v) => setFormData({...formData, truckId: v})}>
@@ -209,9 +251,6 @@ export default function MaintenancePage() {
                       {trucks?.map(truck => (
                         <SelectItem key={truck.id} value={truck.plate}>{truck.plate} - {truck.model}</SelectItem>
                       ))}
-                      {(!loadingTrucks && (!trucks || trucks.length === 0)) && (
-                        <SelectItem value="none" disabled>Nenhum veículo cadastrado</SelectItem>
-                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -254,16 +293,21 @@ export default function MaintenancePage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="cost">Custo Estimado (R$)</Label>
+                    <Label htmlFor="cost" className="flex items-center gap-2">
+                      <DollarSign className="h-3 w-3 text-primary" />
+                      Custo (R$)
+                    </Label>
                     <Input 
                       id="cost" 
                       type="number" 
                       step="0.01"
                       placeholder="0.00" 
-                      className="bg-white/5 border-white/10" 
+                      className="bg-white/5 border-white/10 border-primary/20" 
                       value={formData.cost}
                       onChange={(e) => setFormData({...formData, cost: e.target.value})}
+                      required
                     />
+                    <p className="text-[10px] text-muted-foreground">Informe o valor estimado ou real do serviço.</p>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -279,8 +323,7 @@ export default function MaintenancePage() {
                 <DialogFooter className="pt-4">
                   <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-white">Cancelar</Button>
                   <Button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground neon-glow font-bold px-8">
-                    {isSubmitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
-                    AGENDAR SERVIÇO
+                    {isSubmitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : editingId ? "SALVAR ALTERAÇÕES" : "AGENDAR SERVIÇO"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -335,8 +378,8 @@ export default function MaintenancePage() {
                   <Wrench className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Investimento Total</p>
-                  <p className="text-3xl font-headline font-bold">{formatCurrency(stats.totalCost)}</p>
+                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Investimento Acumulado</p>
+                  <p className="text-3xl font-headline font-bold text-primary">{formatCurrency(stats.totalCost)}</p>
                 </div>
               </div>
             </CardContent>
@@ -407,8 +450,16 @@ export default function MaintenancePage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right pr-8">
-                       <div className="flex items-center justify-end gap-4">
-                          <p className="font-headline font-bold text-white">{formatCurrency(Number(record.cost || 0))}</p>
+                       <div className="flex items-center justify-end gap-3">
+                          <p className="font-headline font-bold text-white mr-2">{formatCurrency(Number(record.cost || 0))}</p>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleEdit(record)}
+                            className="h-8 w-8 rounded-lg hover:bg-white/10 hover:text-primary"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
                           <Button 
                             variant="ghost" 
                             size="icon" 
