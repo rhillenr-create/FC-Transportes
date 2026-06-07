@@ -13,7 +13,9 @@ import {
   ChevronRight,
   FileDown,
   Loader2,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Trash2,
+  Edit
 } from "lucide-react"
 import { 
   ResponsiveContainer, 
@@ -36,6 +38,16 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -43,7 +55,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, addDoc, serverTimestamp, query, orderBy } from "firebase/firestore"
+import { collection, addDoc, serverTimestamp, query, orderBy, doc, deleteDoc, updateDoc } from "firebase/firestore"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
 
@@ -55,6 +67,9 @@ export default function FinancePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [recordToDelete, setRecordToDelete] = useState<{id: string, description: string} | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -119,7 +134,58 @@ export default function FinancePage() {
     return new Date(dateStr).toLocaleDateString('pt-BR')
   }
 
-  const handleAddTransaction = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setEditingId(null)
+    setFormData({
+      description: "",
+      type: "entry",
+      value: "",
+      category: "freight",
+      date: new Date().toISOString().split('T')[0]
+    })
+  }
+
+  const handleEdit = (t: any) => {
+    setEditingId(t.id)
+    setFormData({
+      description: t.description,
+      type: t.type,
+      value: t.value.toString(),
+      category: t.category,
+      date: t.date
+    })
+    setIsOpen(true)
+  }
+
+  const handleDeleteClick = (id: string, description: string) => {
+    setRecordToDelete({ id, description })
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (!recordToDelete) return
+
+    deleteDoc(doc(db, "financial_entries", recordToDelete.id))
+      .then(() => {
+        toast({
+          title: "Transação Removida",
+          description: "O registro foi excluído do fluxo de caixa."
+        })
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: `financial_entries/${recordToDelete.id}`,
+          operation: "delete"
+        })
+        errorEmitter.emit("permission-error", permissionError)
+      })
+      .finally(() => {
+        setIsDeleteDialogOpen(false)
+        setRecordToDelete(null)
+      })
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
@@ -129,33 +195,48 @@ export default function FinancePage() {
       value: Number(formData.value),
       category: formData.category,
       date: formData.date,
-      createdAt: serverTimestamp()
+      updatedAt: serverTimestamp()
     }
 
-    addDoc(collection(db, "financial_entries"), payload)
-      .then(() => {
-        setIsOpen(false)
-        setFormData({
-          description: "",
-          type: "entry",
-          value: "",
-          category: "freight",
-          date: new Date().toISOString().split('T')[0]
+    if (editingId) {
+      updateDoc(doc(db, "financial_entries", editingId), payload)
+        .then(() => {
+          setIsOpen(false)
+          resetForm()
+          toast({
+            title: "Transação Atualizada",
+            description: "Os dados financeiros foram corrigidos com sucesso.",
+          })
         })
-        toast({
-          title: "Transação Registrada",
-          description: "O fluxo de caixa foi atualizado com sucesso.",
+        .catch(async () => {
+          const permissionError = new FirestorePermissionError({
+            path: `financial_entries/${editingId}`,
+            operation: "update",
+            requestResourceData: payload
+          })
+          errorEmitter.emit("permission-error", permissionError)
         })
-      })
-      .catch(async () => {
-        const permissionError = new FirestorePermissionError({
-          path: "financial_entries",
-          operation: "create",
-          requestResourceData: payload
+        .finally(() => setIsSubmitting(false))
+    } else {
+      addDoc(collection(db, "financial_entries"), { ...payload, createdAt: serverTimestamp() })
+        .then(() => {
+          setIsOpen(false)
+          resetForm()
+          toast({
+            title: "Transação Registrada",
+            description: "O fluxo de caixa foi atualizado com sucesso.",
+          })
         })
-        errorEmitter.emit("permission-error", permissionError)
-      })
-      .finally(() => setIsSubmitting(false))
+        .catch(async () => {
+          const permissionError = new FirestorePermissionError({
+            path: "financial_entries",
+            operation: "create",
+            requestResourceData: payload
+          })
+          errorEmitter.emit("permission-error", permissionError)
+        })
+        .finally(() => setIsSubmitting(false))
+    }
   }
 
   const handleExportReports = () => {
@@ -193,7 +274,7 @@ export default function FinancePage() {
                {isExporting ? "EXPORTANDO..." : "Exportar Relatórios"}
              </Button>
              
-             <Dialog open={isOpen} onOpenChange={setIsOpen}>
+             <Dialog open={isOpen} onOpenChange={(open) => { if(!open) resetForm(); setIsOpen(open); }}>
                <DialogTrigger asChild>
                  <Button className="neon-glow font-bold h-12 px-8 rounded-xl bg-primary text-primary-foreground">
                    <Plus className="w-5 h-5 mr-2" />
@@ -202,9 +283,11 @@ export default function FinancePage() {
                </DialogTrigger>
                <DialogContent className="bg-card border-white/10 text-white max-w-xl rounded-[2rem]">
                  <DialogHeader>
-                   <DialogTitle className="text-2xl font-headline font-bold text-primary">Nova Transação Financeira</DialogTitle>
+                   <DialogTitle className="text-2xl font-headline font-bold text-primary">
+                     {editingId ? "Editar Transação" : "Nova Transação Financeira"}
+                   </DialogTitle>
                  </DialogHeader>
-                 <form onSubmit={handleAddTransaction} className="space-y-6 py-4">
+                 <form onSubmit={handleSubmit} className="space-y-6 py-4">
                    <div className="space-y-2">
                      <Label htmlFor="description">Descrição</Label>
                      <Input 
@@ -276,7 +359,7 @@ export default function FinancePage() {
                      <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-white">Cancelar</Button>
                      <Button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground neon-glow font-bold px-8">
                         {isSubmitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
-                        REGISTRAR
+                        {editingId ? "SALVAR ALTERAÇÕES" : "REGISTRAR"}
                      </Button>
                    </DialogFooter>
                  </form>
@@ -360,7 +443,7 @@ export default function FinancePage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
+              <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2">
                 {loading ? (
                    <div className="h-40 flex items-center justify-center">
                       <Loader2 className="animate-spin h-6 w-6 opacity-20" />
@@ -370,7 +453,7 @@ export default function FinancePage() {
                     Aguardando novas transações
                   </div>
                 ) : transactions.map((t: any) => (
-                  <div key={t.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
+                  <div key={t.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 group hover:border-white/20 transition-all">
                     <div className="flex items-center gap-4">
                       <div className={cn(
                         "p-2 rounded-lg",
@@ -385,14 +468,34 @@ export default function FinancePage() {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className={cn(
-                        "font-headline font-bold",
-                        t.type === 'entry' ? "text-primary" : "text-red-500"
-                      )}>
-                        {t.type === 'entry' ? '+' : '-'} {formatCurrency(t.value)}
-                      </p>
-                      <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">{t.category}</p>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <p className={cn(
+                          "font-headline font-bold",
+                          t.type === 'entry' ? "text-primary" : "text-red-500"
+                        )}>
+                          {t.type === 'entry' ? '+' : '-'} {formatCurrency(t.value)}
+                        </p>
+                        <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">{t.category}</p>
+                      </div>
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleEdit(t)}
+                          className="h-8 w-8 rounded-lg hover:bg-white/10 hover:text-primary"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleDeleteClick(t.id, t.description)}
+                          className="h-8 w-8 rounded-lg hover:bg-white/10 hover:text-red-500"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -401,6 +504,26 @@ export default function FinancePage() {
           </Card>
         </div>
       </div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="bg-card border-white/10 text-white rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-headline font-bold text-primary">Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Você tem certeza que deseja excluir a transação <strong>{recordToDelete?.description}</strong>? Esta ação não pode ser desfeita e afetará o saldo total em caixa.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-500 text-white hover:bg-red-600 neon-glow font-bold rounded-xl"
+            >
+              EXCLUIR TRANSAÇÃO
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   )
 }
