@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { User, Bell, Shield, Palette, Save, Loader2 } from "lucide-react"
-import { useAuth, useFirestore, useUser, useDoc } from "@/firebase"
+import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase"
 import { doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { errorEmitter } from "@/firebase/error-emitter"
@@ -23,8 +23,12 @@ export default function SettingsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [mounted, setMounted] = useState(false)
 
-  // Fetch User Profile
-  const userDocRef = user ? doc(db, "users", user.uid) : null
+  // Fetch User Profile with stabilized reference
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !db) return null
+    return doc(db, "users", user.uid)
+  }, [user, db])
+  
   const { data: profile, loading: loadingProfile } = useDoc(userDocRef)
 
   // Form state
