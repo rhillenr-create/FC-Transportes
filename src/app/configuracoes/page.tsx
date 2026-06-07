@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { User, Bell, Shield, Palette, Save, Loader2 } from "lucide-react"
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase"
+import { PageHeader } from "@/components/app/PageHeader"
 import { doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { errorEmitter } from "@/firebase/error-emitter"
@@ -93,10 +94,10 @@ export default function SettingsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4">
-        <div>
-          <h2 className="text-3xl font-headline font-bold text-white">Configurações</h2>
-          <p className="text-muted-foreground">Gerencie suas preferências e configurações de segurança.</p>
-        </div>
+        <PageHeader
+          title="Configurações"
+          description="Gerencie suas preferências e configurações de segurança."
+        />
 
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList className="bg-white/5 border border-white/10 p-1 rounded-xl h-auto">

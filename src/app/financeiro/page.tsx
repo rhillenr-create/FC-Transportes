@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
+import { PageHeader } from "@/components/app/PageHeader"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   DollarSign, 

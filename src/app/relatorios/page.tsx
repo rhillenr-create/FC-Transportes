@@ -19,6 +19,7 @@ import {
   Area
 } from 'recharts'
 import { useToast } from "@/hooks/use-toast"
+import { PageHeader } from "@/components/app/PageHeader"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, orderBy } from "firebase/firestore"
 
@@ -87,11 +88,10 @@ export default function ReportsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8 animate-in fade-in duration-500 pb-10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-headline font-bold text-white tracking-tight">Relatórios Gerenciais</h2>
-            <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Análise profunda da performance e custos da frota.</p>
-          </div>
+        <PageHeader
+          title="Relatórios Gerenciais"
+          description="Análise profunda da performance e custos da frota."
+        />
           <div className="flex gap-4">
             <Button variant="outline" className="border-white/10 bg-white/5 h-12 rounded-xl text-xs font-bold uppercase tracking-widest">
               <Filter className="h-4 w-4 mr-2" />

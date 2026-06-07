@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
+import { PageHeader } from "@/components/app/PageHeader"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -230,10 +231,10 @@ export default function FuelPage() {
     <DashboardLayout>
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h2 className="text-4xl font-headline font-bold text-white tracking-tight">Controle de Abastecimento</h2>
-            <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Monitore o consumo e gastos com combustível em tempo real</p>
-          </div>
+          <PageHeader
+            title="Controle de Abastecimento"
+            description="Monitore o consumo e gastos com combustível em tempo real"
+          />
           
           <Dialog open={isOpen} onOpenChange={(open) => { if(!open) resetForm(); setIsOpen(open); }}>
             <DialogTrigger asChild>

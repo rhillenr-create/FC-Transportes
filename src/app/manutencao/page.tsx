@@ -52,6 +52,7 @@ import { cn } from "@/lib/utils"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc, updateDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
+import { PageHeader } from "@/components/app/PageHeader"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
 
@@ -242,10 +243,10 @@ export default function MaintenancePage() {
     <DashboardLayout>
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h2 className="text-4xl font-headline font-bold text-white tracking-tight">Plano de Manutenção</h2>
-            <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Gerencie revisões preventivas e reparos emergenciais da frota</p>
-          </div>
+          <PageHeader
+            title="Plano de Manutenção"
+            description="Gerencie revisões preventivas e reparos emergenciais da frota"
+          />
           
           <Dialog open={isOpen} onOpenChange={(open) => { if(!open) resetForm(); setIsOpen(open); }}>
             <DialogTrigger asChild>

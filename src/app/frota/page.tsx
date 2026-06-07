@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
+import { PageHeader } from "@/components/app/PageHeader"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { 
@@ -150,10 +151,10 @@ export default function FleetPage() {
     <DashboardLayout>
       <div className="space-y-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <h2 className="text-4xl font-headline font-bold text-white tracking-tight">Controle de Frota</h2>
-            <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Gestão centralizada de ativos logísticos (Real-time)</p>
-          </div>
+          <PageHeader
+            title="Controle de Frota"
+            description="Gestão centralizada de ativos logísticos (Real-time)"
+          />
           
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>

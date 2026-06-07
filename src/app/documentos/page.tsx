@@ -3,6 +3,7 @@
 
 import { useState } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
+import { PageHeader } from "@/components/app/PageHeader"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { FileText, Download, Clock, AlertCircle, Search, Filter, Plus } from "lucide-react"
@@ -37,10 +38,10 @@ export default function DocumentsPage() {
     <DashboardLayout>
       <div className="space-y-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <h2 className="text-4xl font-headline font-bold text-white tracking-tight">Gestão de Documentos</h2>
-            <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Controle centralizado de toda a documentação legal</p>
-          </div>
+          <PageHeader
+            title="Gestão de Documentos"
+            description="Controle centralizado de toda a documentação legal"
+          />
           
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>

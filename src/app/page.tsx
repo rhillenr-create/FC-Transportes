@@ -110,7 +110,7 @@ export default function LoginPage() {
         <div className="text-center space-y-6">
           <div className="inline-flex items-center justify-center bg-white/5 p-4 rounded-[2rem] border border-primary/30 neon-glow relative w-28 h-28 mx-auto overflow-hidden">
             <Image 
-              src={logoImage?.imageUrl || "https://picsum.photos/seed/truck1/200/200"} 
+              src={logoImage?.imageUrl || "/fc-transportes-icon.svg"} 
               alt={logoImage?.description || "FC Logo"} 
               fill 
               className="object-contain p-3"

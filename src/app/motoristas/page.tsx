@@ -44,6 +44,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
+import { PageHeader } from "@/components/app/PageHeader"
 import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { errorEmitter } from "@/firebase/error-emitter"
@@ -196,10 +197,10 @@ export default function DriversPage() {
     <DashboardLayout>
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h2 className="text-4xl font-headline font-bold text-white tracking-tight">Gestão de Motoristas</h2>
-            <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Controle de condutores e performance operacional</p>
-          </div>
+          <PageHeader
+            title="Gestão de Motoristas"
+            description="Controle de condutores e performance operacional"
+          />
           
           <Dialog open={isOpen} onOpenChange={(open) => { if (!open) resetForm(); setIsOpen(open); }}>
             <DialogTrigger asChild>

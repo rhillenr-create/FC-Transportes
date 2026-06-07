@@ -57,6 +57,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { PageHeader } from "@/components/app/PageHeader"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc } from "firebase/firestore"
 import { errorEmitter } from "@/firebase/error-emitter"
@@ -226,10 +227,10 @@ export default function TripsPage() {
     <DashboardLayout>
       <div className="space-y-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <h2 className="text-4xl font-headline font-bold text-white tracking-tight">Viagens e Logística</h2>
-            <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Controle de fretes e monitoramento de rotas em tempo real</p>
-          </div>
+          <PageHeader
+            title="Viagens e Logística"
+            description="Controle de fretes e monitoramento de rotas em tempo real"
+          />
           
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>

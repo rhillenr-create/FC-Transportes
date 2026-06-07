@@ -19,6 +19,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
+import { PageHeader } from "@/components/app/PageHeader"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 
@@ -209,15 +210,10 @@ export default function ChecklistPage() {
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 px-4 pb-20">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setStep('start')} className="rounded-full bg-white/5 border border-white/10 lg:hidden">
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h2 className="text-2xl md:text-3xl font-headline font-bold text-white tracking-tight">Formulário de Inspeção</h2>
-              <p className="text-muted-foreground text-xs uppercase tracking-widest font-medium">Verificação de componentes e ativos</p>
-            </div>
-          </div>
+          <PageHeader
+            title="Formulário de Inspeção"
+            description="Verificação de componentes e ativos"
+          />
           
           <Button 
             variant="outline" 
