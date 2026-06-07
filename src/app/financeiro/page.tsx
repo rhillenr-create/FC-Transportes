@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
@@ -11,7 +11,9 @@ import {
   Wallet,
   Plus,
   ChevronRight,
-  FileDown
+  FileDown,
+  Loader2,
+  Calendar as CalendarIcon
 } from "lucide-react"
 import { 
   ResponsiveContainer, 
@@ -40,20 +42,100 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { collection, addDoc, serverTimestamp, query, orderBy } from "firebase/firestore"
+import { errorEmitter } from "@/firebase/error-emitter"
+import { FirestorePermissionError } from "@/firebase/errors"
 
-const COLORS = ['#00FF88', '#CCFF00', '#00BFFF', '#FF4444']
+const COLORS = ['#00FF88', '#FF4444', '#00BFFF', '#CCFF00', '#FFBB28', '#FF8042']
 
 export default function FinancePage() {
+  const db = useFirestore()
   const [isOpen, setIsOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
+
+  // Form state
+  const [formData, setFormData] = useState({
+    description: "",
+    type: "entry",
+    value: "",
+    category: "freight",
+    date: new Date().toISOString().split('T')[0]
+  })
+
+  // Fetch Transactions
+  const financeQuery = useMemoFirebase(() => {
+    return query(collection(db, "financial_entries"), orderBy("date", "desc"))
+  }, [db])
+  const { data: transactions, loading } = useCollection(financeQuery)
+
+  // Calculations
+  const stats = useMemo(() => {
+    if (!transactions) return { revenue: 0, expenses: 0, balance: 0, margin: 0, categoryData: [] }
+    
+    let revenue = 0
+    let expenses = 0
+    const categories: Record<string, number> = {}
+
+    transactions.forEach(t => {
+      const val = Number(t.value) || 0
+      if (t.type === 'entry') {
+        revenue += val
+      } else {
+        expenses += val
+        categories[t.category] = (categories[t.category] || 0) + val
+      }
+    })
+
+    const balance = revenue - expenses
+    const margin = revenue > 0 ? (balance / revenue) * 100 : 0
+    
+    const categoryData = Object.entries(categories).map(([name, value]) => ({
+      name: name === 'fuel' ? 'Combustível' : 
+            name === 'maint' ? 'Manutenção' : 
+            name === 'salary' ? 'Salários' : 
+            name === 'tax' ? 'Impostos' : name,
+      value
+    }))
+
+    return { revenue, expenses, balance, margin, categoryData }
+  }, [transactions])
 
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault()
-    setIsOpen(false)
-    toast({
-      title: "Transação Registrada",
-      description: "A nova transação foi adicionada ao fluxo de caixa com sucesso.",
-    })
+    setIsSubmitting(true)
+
+    const payload = {
+      ...formData,
+      value: Number(formData.value.replace(/[^0-9,.-]+/g, "").replace(",", ".")),
+      createdAt: serverTimestamp()
+    }
+
+    addDoc(collection(db, "financial_entries"), payload)
+      .then(() => {
+        setIsOpen(false)
+        setFormData({
+          description: "",
+          type: "entry",
+          value: "",
+          category: "freight",
+          date: new Date().toISOString().split('T')[0]
+        })
+        toast({
+          title: "Transação Registrada",
+          description: "O fluxo de caixa foi atualizado com sucesso.",
+        })
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: "financial_entries",
+          operation: "create",
+          requestResourceData: payload
+        })
+        errorEmitter.emit("permission-error", permissionError)
+      })
+      .finally(() => setIsSubmitting(false))
   }
 
   const handleExportReports = () => {
@@ -95,12 +177,19 @@ export default function FinancePage() {
                  <form onSubmit={handleAddTransaction} className="space-y-6 py-4">
                    <div className="space-y-2">
                      <Label htmlFor="description">Descrição</Label>
-                     <Input id="description" placeholder="Ex: Pagamento Frete Agro S/A" className="bg-white/5 border-white/10" required />
+                     <Input 
+                        id="description" 
+                        placeholder="Ex: Pagamento Frete Agro S/A" 
+                        className="bg-white/5 border-white/10" 
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        required 
+                      />
                    </div>
                    <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-2">
                        <Label>Tipo</Label>
-                       <Select>
+                       <Select value={formData.type} onValueChange={(v) => setFormData({...formData, type: v})}>
                          <SelectTrigger className="bg-white/5 border-white/10 text-white">
                            <SelectValue placeholder="Selecione" />
                          </SelectTrigger>
@@ -112,33 +201,53 @@ export default function FinancePage() {
                      </div>
                      <div className="space-y-2">
                        <Label htmlFor="value">Valor</Label>
-                       <Input id="value" placeholder="R$ 0,00" className="bg-white/5 border-white/10" required />
+                       <Input 
+                        id="value" 
+                        placeholder="0.00" 
+                        type="number"
+                        step="0.01"
+                        className="bg-white/5 border-white/10" 
+                        value={formData.value}
+                        onChange={(e) => setFormData({...formData, value: e.target.value})}
+                        required 
+                       />
                      </div>
                    </div>
                    <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-2">
                        <Label>Categoria</Label>
-                       <Select>
+                       <Select value={formData.category} onValueChange={(v) => setFormData({...formData, category: v})}>
                          <SelectTrigger className="bg-white/5 border-white/10 text-white">
                            <SelectValue placeholder="Categoria" />
                          </SelectTrigger>
                          <SelectContent className="bg-card border-white/10 text-white">
+                           <SelectItem value="freight">Frete / Viagem</SelectItem>
                            <SelectItem value="fuel">Combustível</SelectItem>
                            <SelectItem value="maint">Manutenção</SelectItem>
-                           <SelectItem value="freight">Frete / Viagem</SelectItem>
                            <SelectItem value="salary">Salários</SelectItem>
                            <SelectItem value="tax">Impostos</SelectItem>
+                           <SelectItem value="other">Outros</SelectItem>
                          </SelectContent>
                        </Select>
                      </div>
                      <div className="space-y-2">
                        <Label htmlFor="date">Data</Label>
-                       <Input id="date" type="date" className="bg-white/5 border-white/10" required />
+                       <Input 
+                        id="date" 
+                        type="date" 
+                        className="bg-white/5 border-white/10" 
+                        value={formData.date}
+                        onChange={(e) => setFormData({...formData, date: e.target.value})}
+                        required 
+                       />
                      </div>
                    </div>
                    <DialogFooter className="pt-4">
                      <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-white">Cancelar</Button>
-                     <Button type="submit" className="bg-primary text-primary-foreground neon-glow font-bold px-8">REGISTRAR</Button>
+                     <Button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground neon-glow font-bold px-8">
+                        {isSubmitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+                        REGISTRAR
+                     </Button>
                    </DialogFooter>
                  </form>
                </DialogContent>
@@ -148,10 +257,10 @@ export default function FinancePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[
-            { label: "Receitas Totais", value: "R$ 0", icon: TrendingUp, color: "text-primary", bg: "bg-primary/10", trend: "0%" },
-            { label: "Despesas Operacionais", value: "R$ 0", icon: TrendingDown, color: "text-red-500", bg: "bg-red-500/10", trend: "0%" },
-            { label: "Saldo em Caixa", value: "R$ 0", icon: Wallet, color: "text-accent", bg: "bg-accent/10", trend: "0%" },
-            { label: "Margem Líquida", value: "0%", icon: DollarSign, color: "text-blue-400", bg: "bg-blue-400/10", trend: "0%" },
+            { label: "Receitas Totais", value: `R$ ${stats.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10", trend: "Atual" },
+            { label: "Despesas Operacionais", value: `R$ ${stats.expenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: TrendingDown, color: "text-red-500", bg: "bg-red-500/10", trend: "Atual" },
+            { label: "Saldo em Caixa", value: `R$ ${stats.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: Wallet, color: "text-accent", bg: "bg-accent/10", trend: "Saldo" },
+            { label: "Margem Líquida", value: `${stats.margin.toFixed(1)}%`, icon: DollarSign, color: "text-blue-400", bg: "bg-blue-400/10", trend: "Rent." },
           ].map((stat, i) => (
             <div key={i} className="glass-card rounded-[2rem] p-8 group hover:neon-border transition-all">
               <div className="flex items-center gap-4 mb-4">
@@ -165,7 +274,7 @@ export default function FinancePage() {
               </div>
               <div className="flex items-center gap-2">
                  <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", stat.color, stat.bg)}>{stat.trend}</span>
-                 <span className="text-[10px] text-muted-foreground uppercase font-medium">vs mês anterior</span>
+                 <span className="text-[10px] text-muted-foreground uppercase font-medium">tempo real</span>
               </div>
             </div>
           ))}
@@ -176,26 +285,88 @@ export default function FinancePage() {
             <CardHeader className="px-0 pt-0">
               <div className="flex items-center justify-between mb-8">
                 <CardTitle className="text-xl font-headline font-bold text-white">Distribuição de Gastos</CardTitle>
-                <button className="text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-1">Detalhar <ChevronRight className="h-3 w-3" /></button>
               </div>
             </CardHeader>
-            <CardContent className="h-[350px] p-0 flex items-center justify-center text-muted-foreground text-xs uppercase font-bold">
-              Sem dados disponíveis
+            <CardContent className="h-[350px] p-0">
+              {stats.categoryData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.categoryData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {stats.categoryData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ background: '#0a0c0b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                      itemStyle={{ color: '#fff' }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground text-xs uppercase font-bold">
+                  Sem dados de gastos
+                </div>
+              )}
             </CardContent>
           </Card>
 
           <Card className="lg:col-span-7 glass-card rounded-[2.5rem] border-white/5 p-8">
             <CardHeader className="px-0 pt-0">
                <div className="flex items-center justify-between mb-8">
-                <CardTitle className="text-xl font-headline font-bold text-white">Fluxo de Caixa Mensal</CardTitle>
+                <CardTitle className="text-xl font-headline font-bold text-white">Últimas Transações</CardTitle>
                 <div className="flex gap-2">
                    <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-primary"><div className="h-2 w-2 rounded-full bg-primary" /> Entradas</span>
                    <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-red-500"><div className="h-2 w-2 rounded-full bg-red-500" /> Saídas</span>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="h-[350px] p-0 flex items-center justify-center text-muted-foreground text-xs uppercase font-bold">
-              Aguardando novas transações
+            <CardContent className="p-0">
+              <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
+                {loading ? (
+                   <div className="h-40 flex items-center justify-center">
+                      <Loader2 className="animate-spin h-6 w-6 opacity-20" />
+                   </div>
+                ) : !transactions || transactions.length === 0 ? (
+                  <div className="h-40 flex items-center justify-center text-muted-foreground text-xs uppercase font-bold">
+                    Aguardando novas transações
+                  </div>
+                ) : transactions.map((t: any) => (
+                  <div key={t.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "p-2 rounded-lg",
+                        t.type === 'entry' ? "bg-primary/10 text-primary" : "bg-red-500/10 text-red-500"
+                      )}>
+                        {t.type === 'entry' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-white">{t.description}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-medium flex items-center gap-1">
+                          <CalendarIcon className="h-3 w-3" /> {new Date(t.date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={cn(
+                        "font-headline font-bold",
+                        t.type === 'entry' ? "text-primary" : "text-red-500"
+                      )}>
+                        {t.type === 'entry' ? '+' : '-'} R$ {Number(t.value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">{t.category}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
