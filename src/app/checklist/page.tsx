@@ -12,7 +12,8 @@ import {
   AlertCircle,
   Loader2,
   Wrench,
-  Stethoscope
+  Stethoscope,
+  ChevronLeft
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -75,18 +76,18 @@ export default function ChecklistPage() {
   if (step === 'start') {
     return (
       <DashboardLayout>
-        <div className="max-w-4xl mx-auto py-12 text-center space-y-8">
-          <div className="inline-flex items-center justify-center bg-primary/20 p-6 rounded-3xl border border-primary/30 neon-glow">
-            <ClipboardCheck className="w-16 h-16 text-primary" />
+        <div className="max-w-4xl mx-auto py-8 md:py-20 text-center space-y-8 px-4">
+          <div className="inline-flex items-center justify-center bg-primary/10 p-6 md:p-8 rounded-[2.5rem] border border-primary/20 neon-glow">
+            <ClipboardCheck className="w-16 h-16 md:w-20 md:h-20 text-primary" />
           </div>
           <div className="space-y-4">
-            <h1 className="text-4xl font-headline font-bold text-white">Inspeção Pré-Viagem</h1>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Inicie o checklist obrigatório para garantir a segurança da operação e a longevidade da frota.
+            <h1 className="text-3xl md:text-5xl font-headline font-bold text-white tracking-tighter">Inspeção Pré-Viagem</h1>
+            <p className="text-muted-foreground text-sm md:text-lg max-w-xl mx-auto uppercase tracking-widest font-medium">
+              Checklist obrigatório para segurança operacional.
             </p>
           </div>
-          <Button size="lg" className="h-14 px-12 text-lg font-bold neon-glow" onClick={() => setStep('form')}>
-            INICIAR CHECKLIST AGORA
+          <Button size="lg" className="h-16 px-12 text-lg font-bold neon-glow rounded-2xl w-full md:w-auto" onClick={() => setStep('form')}>
+            INICIAR AGORA
           </Button>
         </div>
       </DashboardLayout>
@@ -96,27 +97,27 @@ export default function ChecklistPage() {
   if (step === 'result') {
     return (
       <DashboardLayout>
-        <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-headline font-bold text-white flex items-center gap-3">
-              <Stethoscope className="text-primary h-8 w-8" />
-              Diagnóstico Inteligente
+        <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 animate-in slide-in-from-bottom-6 duration-700 px-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h2 className="text-2xl md:text-3xl font-headline font-bold text-white flex items-center gap-3">
+              <Stethoscope className="text-primary h-7 w-7 md:h-8 md:w-8" />
+              Diagnóstico IA
             </h2>
-            <Button variant="outline" onClick={() => setStep('start')}>NOVA INSPEÇÃO</Button>
+            <Button variant="outline" className="w-full md:w-auto rounded-xl border-white/10" onClick={() => setStep('start')}>NOVA INSPEÇÃO</Button>
           </div>
 
-          <Card className="bg-card border-white/5 overflow-hidden">
+          <Card className="bg-card border-white/5 overflow-hidden rounded-[2.5rem]">
              <div className={cn(
-               "h-2",
+               "h-2.5",
                aiAnalysis?.severity === 'critical' ? "bg-red-500" :
                aiAnalysis?.severity === 'high' ? "bg-orange-500" :
                aiAnalysis?.severity === 'medium' ? "bg-yellow-500" : "bg-primary"
              )} />
-             <CardContent className="p-8 space-y-6">
-               <div className="flex items-center justify-between">
-                 <h3 className="text-xl font-bold uppercase tracking-wider text-muted-foreground">Status de Severidade</h3>
+             <CardContent className="p-6 md:p-10 space-y-8">
+               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                 <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Status de Urgência</h3>
                  <span className={cn(
-                   "px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest",
+                   "px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest text-center",
                    aiAnalysis?.severity === 'critical' ? "bg-red-500 text-white" :
                    aiAnalysis?.severity === 'high' ? "bg-orange-500 text-white" :
                    aiAnalysis?.severity === 'medium' ? "bg-yellow-500 text-black" : "bg-primary text-black"
@@ -125,20 +126,22 @@ export default function ChecklistPage() {
                  </span>
                </div>
 
-               <div className="space-y-4">
-                 <h4 className="font-headline font-bold text-lg text-primary flex items-center gap-2">
-                   <AlertCircle className="h-5 w-5" />
-                   Insights Diagnósticos
-                 </h4>
-                 <p className="text-muted-foreground leading-relaxed">{aiAnalysis?.diagnosticInsights}</p>
-               </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+                 <div className="space-y-4">
+                   <h4 className="font-headline font-bold text-lg text-primary flex items-center gap-2">
+                     <AlertCircle className="h-5 w-5" />
+                     Insights
+                   </h4>
+                   <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{aiAnalysis?.diagnosticInsights}</p>
+                 </div>
 
-               <div className="space-y-4">
-                 <h4 className="font-headline font-bold text-lg text-accent flex items-center gap-2">
-                   <Wrench className="h-5 w-5" />
-                   Recomendações de Manutenção
-                 </h4>
-                 <p className="text-muted-foreground leading-relaxed">{aiAnalysis?.maintenanceRecommendations}</p>
+                 <div className="space-y-4">
+                   <h4 className="font-headline font-bold text-lg text-accent flex items-center gap-2">
+                     <Wrench className="h-5 w-5" />
+                     Manutenção
+                   </h4>
+                   <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{aiAnalysis?.maintenanceRecommendations}</p>
+                 </div>
                </div>
              </CardContent>
           </Card>
@@ -149,59 +152,69 @@ export default function ChecklistPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div>
-          <h2 className="text-3xl font-headline font-bold text-white">Checklist Operacional</h2>
-          <p className="text-muted-foreground">Preencha todos os itens com atenção.</p>
+      <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 px-4 pb-20">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setStep('start')} className="rounded-full bg-white/5 border border-white/10 lg:hidden">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h2 className="text-2xl md:text-3xl font-headline font-bold text-white tracking-tight">Formulário de Inspeção</h2>
+            <p className="text-muted-foreground text-xs uppercase tracking-widest font-medium">Verificação detalhada de componentes</p>
+          </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {checklistItems.map((item) => (
-            <Card key={item.id} className="bg-card border-white/5 group hover:border-primary/20 transition-all duration-300">
-              <CardContent className="p-6">
+            <Card key={item.id} className="bg-card border-white/5 rounded-[2rem] overflow-hidden group transition-all duration-300">
+              <CardContent className="p-5 md:p-8">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-primary tracking-widest">{item.category}</span>
-                    <h3 className="text-lg font-bold">{item.label}</h3>
+                    <span className="text-[10px] font-bold uppercase text-primary/70 tracking-[0.2em]">{item.category}</span>
+                    <h3 className="text-lg md:text-xl font-bold tracking-tight">{item.label}</h3>
                   </div>
                   
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <Button 
                       onClick={() => handleStatusChange(item.id, 'ok')}
                       variant={results[item.id] === 'ok' ? "default" : "outline"}
                       className={cn(
-                        "flex-1 md:flex-none font-bold",
-                        results[item.id] === 'ok' && "bg-primary text-primary-foreground neon-glow"
+                        "flex-1 md:flex-none h-12 md:h-14 md:px-10 font-bold rounded-2xl transition-all",
+                        results[item.id] === 'ok' ? "bg-primary text-primary-foreground neon-glow scale-105" : "border-white/10"
                       )}
                     >
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      OK
+                      <CheckCircle2 className="w-5 h-5 md:mr-2" />
+                      <span className="hidden md:inline">TUDO OK</span>
+                      <span className="md:hidden">OK</span>
                     </Button>
                     <Button 
                       onClick={() => handleStatusChange(item.id, 'issue')}
                       variant={results[item.id] === 'issue' ? "destructive" : "outline"}
-                      className="flex-1 md:flex-none font-bold"
+                      className={cn(
+                        "flex-1 md:flex-none h-12 md:h-14 md:px-10 font-bold rounded-2xl transition-all",
+                        results[item.id] === 'issue' ? "bg-red-500 scale-105" : "border-white/10"
+                      )}
                     >
-                      <AlertCircle className="w-4 h-4 mr-2" />
-                      PROBLEMA
+                      <AlertCircle className="w-5 h-5 md:mr-2" />
+                      <span className="hidden md:inline">PROBLEMA</span>
+                      <span className="md:hidden">AVARIA</span>
                     </Button>
                   </div>
                 </div>
 
                 {results[item.id] === 'issue' && (
-                  <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="space-y-2">
-                      <Label className="text-xs uppercase text-muted-foreground font-bold">Observações do Problema</Label>
+                      <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-[0.2em] ml-1">Observações do Motorista</Label>
                       <Textarea 
-                        placeholder="Descreva o que foi identificado..." 
-                        className="bg-white/5 border-white/10"
+                        placeholder="Descreva o problema identificado..." 
+                        className="bg-white/5 border-white/10 rounded-2xl min-h-[100px] md:min-h-[120px] p-4 text-sm"
                         value={observations[item.id] || ''}
                         onChange={(e) => setObservations(prev => ({ ...prev, [item.id]: e.target.value }))}
                       />
                     </div>
-                    <Button variant="secondary" className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-xs h-10">
+                    <Button variant="secondary" className="w-full h-12 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest">
                       <Camera className="w-4 h-4 mr-2" />
-                      ANEXAR FOTO DO PROBLEMA
+                      ANEXAR EVIDÊNCIA FOTOGRÁFICA
                     </Button>
                   </div>
                 )}
@@ -210,20 +223,20 @@ export default function ChecklistPage() {
           ))}
         </div>
 
-        <div className="pt-8 pb-12 flex justify-end">
+        <div className="pt-10 pb-20 flex justify-end">
           <Button 
             size="lg" 
-            className="h-14 px-12 text-lg font-bold neon-glow w-full md:w-auto"
+            className="h-16 px-16 text-lg font-bold neon-glow w-full md:w-auto rounded-[2rem]"
             onClick={handleFinalize}
             disabled={isAnalyzing || Object.keys(results).length < checklistItems.length}
           >
             {isAnalyzing ? (
               <>
-                <Loader2 className="animate-spin mr-2" />
-                ANALISANDO COM IA...
+                <Loader2 className="animate-spin mr-3 h-6 w-6" />
+                PROCESSANDO IA...
               </>
             ) : (
-              "FINALIZAR E ANALISAR"
+              "FINALIZAR INSPEÇÃO"
             )}
           </Button>
         </div>
