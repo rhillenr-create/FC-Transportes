@@ -73,6 +73,22 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["description", "type", "value", "date"]
+    },
+    "MaintenanceEntry": {
+      "title": "Registro de Manutenção",
+      "description": "Histórico de revisões e reparos técnicos.",
+      "type": "object",
+      "properties": {
+        "truckId": { "type": "string" },
+        "type": { "type": "string", "enum": ["preventive", "corrective", "predictive"] },
+        "date": { "type": "string", "format": "date" },
+        "service": { "type": "string" },
+        "observations": { "type": "string" },
+        "cost": { "type": "number" },
+        "status": { "type": "string", "enum": ["scheduled", "completed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["truckId", "type", "date", "service"]
     }
   },
   "auth": {
@@ -98,6 +114,10 @@
     "/financial_entries/{entryId}": {
       "schema": "#/backend/entities/FinancialTransaction",
       "description": "Fluxo de caixa geral do sistema"
+    },
+    "/maintenance_entries/{entryId}": {
+      "schema": "#/backend/entities/MaintenanceEntry",
+      "description": "Histórico e agendamento de manutenção"
     }
   }
 }
