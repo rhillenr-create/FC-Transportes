@@ -9,7 +9,7 @@ import {
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
-  PieChart as PieChartIcon
+  ChevronRight
 } from "lucide-react"
 import { 
   ResponsiveContainer, 
@@ -24,6 +24,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts'
+import { cn } from "@/lib/utils"
 
 const dataPie = [
   { name: 'Combustível', value: 45 },
@@ -44,82 +45,61 @@ const cashflowData = [
 export default function FinancePage() {
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div>
-          <h2 className="text-3xl font-headline font-bold text-white">Gestão Financeira</h2>
-          <p className="text-muted-foreground">Fluxo de caixa e saúde financeira da frota.</p>
+      <div className="space-y-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <h2 className="text-4xl font-headline font-bold text-white tracking-tight">Gestão Financeira</h2>
+            <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Fluxo de caixa e inteligência de rentabilidade</p>
+          </div>
+          <div className="flex gap-4">
+             <button className="px-6 h-12 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all">Exportar Relatórios</button>
+             <button className="px-6 h-12 rounded-xl bg-primary text-primary-foreground neon-glow text-xs font-bold uppercase tracking-widest">Nova Transação</button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-card border-white/5">
-            <CardContent className="p-6">
+          {[
+            { label: "Receitas Totais", value: "R$ 373.000", icon: TrendingUp, color: "text-primary", bg: "bg-primary/10", trend: "+12%" },
+            { label: "Despesas Operacionais", value: "R$ 206.000", icon: TrendingDown, color: "text-red-500", bg: "bg-red-500/10", trend: "+5%" },
+            { label: "Saldo em Caixa", value: "R$ 167.000", icon: Wallet, color: "text-accent", bg: "bg-accent/10", trend: "+18%" },
+            { label: "Margem Líquida", value: "44.7%", icon: DollarSign, color: "text-blue-400", bg: "bg-blue-400/10", trend: "+2.4%" },
+          ].map((stat, i) => (
+            <div key={i} className="glass-card rounded-[2rem] p-8 group hover:neon-border transition-all">
               <div className="flex items-center gap-4 mb-4">
-                <div className="p-2 rounded-lg bg-primary/20 text-primary">
-                  <TrendingUp className="h-6 w-6" />
+                <div className={cn("p-4 rounded-2xl group-hover:scale-110 transition-transform", stat.bg, stat.color)}>
+                  <stat.icon className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase font-bold">Total Receitas</p>
-                  <p className="text-xl font-headline font-bold">R$ 373.000</p>
+                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">{stat.label}</p>
+                  <p className="text-2xl font-headline font-bold">{stat.value}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-white/5">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-2 rounded-lg bg-red-500/20 text-red-500">
-                  <TrendingDown className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase font-bold">Total Despesas</p>
-                  <p className="text-xl font-headline font-bold">R$ 206.000</p>
-                </div>
+              <div className="flex items-center gap-2">
+                 <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", stat.color, stat.bg)}>{stat.trend}</span>
+                 <span className="text-[10px] text-muted-foreground uppercase font-medium">vs mês anterior</span>
               </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-white/5">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-2 rounded-lg bg-accent/20 text-accent">
-                  <Wallet className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase font-bold">Saldo Atual</p>
-                  <p className="text-xl font-headline font-bold">R$ 167.000</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-white/5">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-2 rounded-lg bg-white/5 text-white">
-                  <DollarSign className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase font-bold">Margem Líquida</p>
-                  <p className="text-xl font-headline font-bold">44.7%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="bg-card border-white/5">
-            <CardHeader>
-              <CardTitle className="text-lg font-headline font-semibold">Distribuição de Despesas</CardTitle>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <Card className="lg:col-span-5 glass-card rounded-[2.5rem] border-white/5 p-8">
+            <CardHeader className="px-0 pt-0">
+              <div className="flex items-center justify-between mb-8">
+                <CardTitle className="text-xl font-headline font-bold text-white">Distribuição de Gastos</CardTitle>
+                <button className="text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-1">Detalhar <ChevronRight className="h-3 w-3" /></button>
+              </div>
             </CardHeader>
-            <CardContent className="h-[300px]">
+            <CardContent className="h-[350px] p-0 flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={dataPie}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
+                    innerRadius={80}
+                    outerRadius={110}
+                    paddingAngle={8}
                     dataKey="value"
                   >
                     {dataPie.map((entry, index) => (
@@ -127,31 +107,36 @@ export default function FinancePage() {
                     ))}
                   </Pie>
                   <Tooltip 
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                    itemStyle={{ color: '#fff' }}
+                    contentStyle={{ backgroundColor: 'rgba(10,12,11,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px' }}
                   />
-                  <Legend />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-white/5">
-            <CardHeader>
-              <CardTitle className="text-lg font-headline font-semibold">Fluxo de Caixa Mensal</CardTitle>
+          <Card className="lg:col-span-7 glass-card rounded-[2.5rem] border-white/5 p-8">
+            <CardHeader className="px-0 pt-0">
+               <div className="flex items-center justify-between mb-8">
+                <CardTitle className="text-xl font-headline font-bold text-white">Fluxo de Caixa Mensal</CardTitle>
+                <div className="flex gap-2">
+                   <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-primary"><div className="h-2 w-2 rounded-full bg-primary" /> Entradas</span>
+                   <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-red-500"><div className="h-2 w-2 rounded-full bg-red-500" /> Saídas</span>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="h-[300px]">
+            <CardContent className="h-[350px] p-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={cashflowData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="month" stroke="#666" fontSize={12} axisLine={false} tickLine={false} />
-                  <YAxis stroke="#666" fontSize={12} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${v/1000}k`} />
+                  <XAxis dataKey="month" stroke="#555" fontSize={11} axisLine={false} tickLine={false} />
+                  <YAxis stroke="#555" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${v/1000}k`} />
                   <Tooltip 
-                    cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                    cursor={{fill: 'rgba(255,255,255,0.02)'}}
+                    contentStyle={{ backgroundColor: 'rgba(10,12,11,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px' }}
                   />
-                  <Bar dataKey="entries" name="Entradas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="exits" name="Saídas" fill="#FF4444" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="entries" name="Entradas" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} barSize={40} />
+                  <Bar dataKey="exits" name="Saídas" fill="#FF4444" radius={[6, 6, 0, 0]} barSize={40} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

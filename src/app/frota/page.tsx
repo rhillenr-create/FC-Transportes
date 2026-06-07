@@ -9,7 +9,8 @@ import {
   Edit2, 
   Trash2, 
   Eye, 
-  Truck
+  Truck,
+  ArrowUpRight
 } from "lucide-react"
 import {
   Table,
@@ -31,96 +32,102 @@ const trucks = [
 export default function FleetPage() {
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-headline font-bold text-white">Controle de Frota</h2>
-            <p className="text-muted-foreground">Gerenciamento completo de veículos e ativos.</p>
+      <div className="space-y-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <h2 className="text-4xl font-headline font-bold text-white tracking-tight">Controle de Frota</h2>
+            <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Gestão centralizada de ativos logísticos</p>
           </div>
-          <Button className="neon-glow font-bold">
-            <Plus className="w-4 h-4 mr-2" />
-            CADASTRAR CAMINHÃO
+          <Button className="neon-glow font-bold h-12 px-8 rounded-xl bg-primary text-primary-foreground hover:scale-105 transition-all">
+            <Plus className="w-5 h-5 mr-2" />
+            CADASTRAR VEÍCULO
           </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-card border border-white/5 rounded-2xl p-6 flex items-center gap-4">
-            <div className="bg-primary/20 p-3 rounded-xl">
-              <Truck className="h-6 w-6 text-primary" />
+          {[
+            { label: "Total da Frota", value: "12", icon: Truck, color: "text-primary", bg: "bg-primary/10" },
+            { label: "Veículos Ativos", value: "08", icon: Truck, color: "text-accent", bg: "bg-accent/10" },
+            { label: "Em Manutenção", value: "02", icon: Truck, color: "text-red-500", bg: "bg-red-500/10" },
+          ].map((stat, i) => (
+            <div key={i} className="glass-card rounded-[2rem] p-8 flex items-center gap-6 group hover:neon-border transition-all">
+              <div className={cn("p-5 rounded-2xl group-hover:scale-110 transition-transform", stat.bg, stat.color)}>
+                <stat.icon className="h-8 w-8" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">{stat.label}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-3xl font-headline font-bold">{stat.value}</p>
+                  <span className="text-[10px] font-bold text-primary flex items-center gap-0.5">
+                    <ArrowUpRight className="h-3 w-3" />
+                    +2
+                  </span>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Total de Veículos</p>
-              <p className="text-2xl font-headline font-bold">12</p>
-            </div>
-          </div>
-          <div className="bg-card border border-white/5 rounded-2xl p-6 flex items-center gap-4">
-            <div className="bg-accent/20 p-3 rounded-xl">
-              <Truck className="h-6 w-6 text-accent" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Disponíveis</p>
-              <p className="text-2xl font-headline font-bold">08</p>
-            </div>
-          </div>
-          <div className="bg-card border border-white/5 rounded-2xl p-6 flex items-center gap-4">
-            <div className="bg-red-500/20 p-3 rounded-xl">
-              <Truck className="h-6 w-6 text-red-500" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Em Manutenção</p>
-              <p className="text-2xl font-headline font-bold">02</p>
-            </div>
-          </div>
+          ))}
         </div>
 
-        <div className="bg-card border border-white/5 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-white/5">
-            <div className="relative w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por placa ou modelo..." className="pl-10 bg-white/5" />
+        <div className="glass-card rounded-[2.5rem] overflow-hidden border-white/5">
+          <div className="p-8 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar por placa, modelo ou motorista..." className="pl-12 h-12 bg-white/5 border-white/10 rounded-xl" />
+            </div>
+            <div className="flex items-center gap-4">
+               <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Filtrar por Status:</span>
+               <div className="flex gap-2">
+                 {["Todos", "Disponível", "Viagem", "Manutenção"].map((f) => (
+                   <button key={f} className="px-4 py-2 rounded-lg bg-white/5 text-[10px] font-bold uppercase hover:bg-primary hover:text-primary-foreground transition-all">
+                     {f}
+                   </button>
+                 ))}
+               </div>
             </div>
           </div>
-          <Table>
-            <TableHeader className="bg-white/5">
-              <TableRow className="border-white/5 hover:bg-transparent">
-                <TableHead className="text-xs uppercase font-bold text-muted-foreground">Placa</TableHead>
-                <TableHead className="text-xs uppercase font-bold text-muted-foreground">Modelo</TableHead>
-                <TableHead className="text-xs uppercase font-bold text-muted-foreground">Ano</TableHead>
-                <TableHead className="text-xs uppercase font-bold text-muted-foreground">KM Atual</TableHead>
-                <TableHead className="text-xs uppercase font-bold text-muted-foreground">Média Consumo</TableHead>
-                <TableHead className="text-xs uppercase font-bold text-muted-foreground">Status</TableHead>
-                <TableHead className="text-right text-xs uppercase font-bold text-muted-foreground">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {trucks.map((truck) => (
-                <TableRow key={truck.id} className="border-white/5 hover:bg-white/5 transition-colors">
-                  <TableCell className="font-bold text-primary">{truck.plate}</TableCell>
-                  <TableCell>{truck.model}</TableCell>
-                  <TableCell>{truck.year}</TableCell>
-                  <TableCell>{truck.km}</TableCell>
-                  <TableCell>{truck.avg} km/L</TableCell>
-                  <TableCell>
-                    <span className={cn(
-                      "px-2 py-1 rounded text-[10px] font-bold uppercase",
-                      truck.status === "Disponível" ? "bg-primary/20 text-primary" : 
-                      truck.status === "Em Viagem" ? "bg-accent/20 text-accent" : 
-                      "bg-red-500/20 text-red-500"
-                    )}>
-                      {truck.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10 hover:text-primary"><Eye className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10 hover:text-accent"><Edit2 className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-white/5">
+                <TableRow className="border-white/5 hover:bg-transparent h-16">
+                  <TableHead className="text-[10px] uppercase font-bold text-muted-foreground pl-8">Placa</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">Modelo / Fabricante</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">Ano</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">KM Atual</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">Média (KM/L)</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold text-muted-foreground">Status Operacional</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-bold text-muted-foreground pr-8">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {trucks.map((truck) => (
+                  <TableRow key={truck.id} className="border-white/5 table-row-hover h-20">
+                    <TableCell className="font-bold text-primary text-base pl-8">{truck.plate}</TableCell>
+                    <TableCell className="font-medium text-white/90">{truck.model}</TableCell>
+                    <TableCell className="text-muted-foreground">{truck.year}</TableCell>
+                    <TableCell className="font-mono text-sm">{truck.km} km</TableCell>
+                    <TableCell className="font-bold text-accent">{truck.avg}</TableCell>
+                    <TableCell>
+                      <span className={cn(
+                        "px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest",
+                        truck.status === "Disponível" ? "bg-primary/10 text-primary border border-primary/20" : 
+                        truck.status === "Em Viagem" ? "bg-accent/10 text-accent border border-accent/20" : 
+                        "bg-red-500/10 text-red-500 border border-red-500/20"
+                      )}>
+                        {truck.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right pr-8">
+                      <div className="flex items-center justify-end gap-3">
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/10 hover:text-primary"><Eye className="h-5 w-5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/10 hover:text-accent"><Edit2 className="h-5 w-5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-white/10 hover:text-red-500"><Trash2 className="h-5 w-5" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
     </DashboardLayout>
