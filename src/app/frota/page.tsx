@@ -7,11 +7,8 @@ import { Input } from "@/components/ui/input"
 import { 
   Plus, 
   Search, 
-  Edit2, 
   Trash2, 
-  Eye, 
   Truck as TruckIcon,
-  ArrowUpRight,
   Loader2
 } from "lucide-react"
 import {
@@ -30,6 +27,16 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
@@ -44,6 +51,8 @@ export default function FleetPage() {
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [truckToDelete, setTruckToDelete] = useState<{id: string, plate: string} | null>(null)
 
   // Estados do formulário
   const [formData, setFormData] = useState({
@@ -99,17 +108,32 @@ export default function FleetPage() {
       .finally(() => setIsSubmitting(false))
   }
 
-  const handleDelete = (id: string, plate: string) => {
-    if (confirm(`Tem certeza que deseja excluir o veículo ${plate}?`)) {
-      deleteDoc(doc(db, "trucks", id))
-        .catch(async () => {
-          const permissionError = new FirestorePermissionError({
-            path: `trucks/${id}`,
-            operation: "delete"
-          })
-          errorEmitter.emit("permission-error", permissionError)
+  const handleDeleteClick = (id: string, plate: string) => {
+    setTruckToDelete({ id, plate })
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (!truckToDelete) return
+
+    deleteDoc(doc(db, "trucks", truckToDelete.id))
+      .then(() => {
+        toast({
+          title: "Veículo Removido",
+          description: `O veículo ${truckToDelete.plate} foi excluído do sistema.`
         })
-    }
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: `trucks/${truckToDelete.id}`,
+          operation: "delete"
+        })
+        errorEmitter.emit("permission-error", permissionError)
+      })
+      .finally(() => {
+        setIsDeleteDialogOpen(false)
+        setTruckToDelete(null)
+      })
   }
 
   return (
@@ -294,7 +318,7 @@ export default function FleetPage() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => handleDelete(truck.id, truck.plate)}
+                          onClick={() => handleDeleteClick(truck.id, truck.plate)}
                           className="h-10 w-10 rounded-xl hover:bg-white/10 hover:text-red-500"
                         >
                           <Trash2 className="h-5 w-5" />
@@ -308,6 +332,26 @@ export default function FleetPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="bg-card border-white/10 text-white rounded-[2rem]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-headline font-bold text-primary">Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Você tem certeza que deseja excluir o veículo <strong>{truckToDelete?.plate}</strong>? Esta ação não pode ser desfeita e removerá todos os dados associados a este ativo no banco de dados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10 rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-500 text-white hover:bg-red-600 neon-glow font-bold rounded-xl"
+            >
+              EXCLUIR VEÍCULO
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   )
 }
