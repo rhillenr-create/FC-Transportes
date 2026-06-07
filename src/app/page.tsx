@@ -1,17 +1,15 @@
-
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Mail, Lock, Loader2, UserPlus, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth"
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "firebase/auth"
 import { useAuth } from "@/firebase"
 import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 
 export default function LoginPage() {
@@ -25,9 +23,36 @@ export default function LoginPage() {
 
   const logoImage = PlaceHolderImages.find(img => img.id === 'app-logo')
 
+  // Redireciona se o usuário já estiver logado
+  useEffect(() => {
+    if (!auth) return
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.push("/dashboard")
+      }
+    });
+    return () => unsubscribe();
+  }, [auth, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!auth) return
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "Erro de Configuração",
+        description: "O serviço de autenticação não foi inicializado corretamente."
+      })
+      return
+    }
+
+    if (!email || !password) {
+      toast({
+        variant: "destructive",
+        title: "Campos Obrigatórios",
+        description: "Por favor, preencha o e-mail e a senha."
+      })
+      return
+    }
 
     setIsLoading(true)
     try {
@@ -35,22 +60,46 @@ export default function LoginPage() {
         await createUserWithEmailAndPassword(auth, email, password)
         toast({
           title: "Conta criada com sucesso!",
-          description: "Você já pode acessar o sistema FC Frota."
+          description: "Bem-vindo ao sistema FC Frota. Você já está logado."
         })
-        setIsRegistering(false)
+        // O useEffect acima cuidará do redirecionamento
       } else {
         await signInWithEmailAndPassword(auth, email, password)
         router.push("/dashboard")
       }
     } catch (error: any) {
-      console.error(error)
-      let message = "E-mail ou senha incorretos."
-      if (error.code === 'auth/email-already-in-use') message = "Este e-mail já está em uso."
-      if (error.code === 'auth/weak-password') message = "A senha deve ter pelo menos 6 caracteres."
+      console.error("Firebase Auth Error:", error)
+      
+      let title = isRegistering ? "Erro no cadastro" : "Erro no login"
+      let message = "Ocorreu um erro inesperado. Tente novamente."
+
+      // Tratamento de erros comuns do Firebase Auth
+      switch (error.code) {
+        case 'auth/invalid-api-key':
+          message = "Configuração do servidor inválida (API Key). Verifique o console do Firebase."
+          break
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          message = "E-mail ou senha incorretos."
+          break
+        case 'auth/email-already-in-use':
+          message = "Este e-mail já está sendo utilizado por outra conta."
+          break
+        case 'auth/weak-password':
+          message = "A senha deve ter pelo menos 6 caracteres."
+          break
+        case 'auth/network-request-failed':
+          message = "Falha de conexão. Verifique sua internet."
+          break
+        case 'auth/too-many-requests':
+          message = "Muitas tentativas malsucedidas. Tente novamente mais tarde."
+          break
+      }
       
       toast({
         variant: "destructive",
-        title: isRegistering ? "Erro no cadastro" : "Erro no login",
+        title: title,
         description: message
       })
     } finally {
@@ -92,6 +141,7 @@ export default function LoginPage() {
                   className="h-14 pl-12 bg-white/5 border-white/10 rounded-2xl focus:ring-primary/30"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
                   required 
                 />
               </div>
@@ -113,6 +163,7 @@ export default function LoginPage() {
                   className="h-14 pl-12 bg-white/5 border-white/10 rounded-2xl focus:ring-primary/30"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
                   required 
                 />
               </div>
@@ -125,7 +176,10 @@ export default function LoginPage() {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Loader2 className="animate-spin h-6 w-6" />
+                  <>
+                    <Loader2 className="animate-spin h-6 w-6 mr-2" />
+                    {isRegistering ? "CADASTRANDO..." : "ENTRANDO..."}
+                  </>
                 ) : (
                   isRegistering ? "CADASTRAR AGORA" : "ENTRAR NO SISTEMA"
                 )}
