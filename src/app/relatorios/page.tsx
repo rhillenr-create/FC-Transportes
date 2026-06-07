@@ -17,14 +17,6 @@ import {
 } from 'recharts'
 import { useToast } from "@/hooks/use-toast"
 
-const data = [
-  { name: 'Jan', viagens: 45, custos: 2400 },
-  { name: 'Fev', viagens: 52, custos: 2800 },
-  { name: 'Mar', viagens: 48, custos: 2100 },
-  { name: 'Abr', viagens: 61, custos: 3200 },
-  { name: 'Mai', viagens: 55, custos: 2900 },
-]
-
 export default function ReportsPage() {
   const { toast } = useToast()
 
@@ -65,8 +57,8 @@ export default function ReportsPage() {
               <TrendingUp className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-headline font-bold">88.5%</div>
-              <p className="text-[10px] text-primary mt-1 font-bold">+5.2% em relação ao mês anterior</p>
+              <div className="text-3xl font-headline font-bold">0%</div>
+              <p className="text-[10px] text-muted-foreground mt-1 font-bold">Aguardando dados</p>
             </CardContent>
           </Card>
           <Card className="glass-card">
@@ -75,8 +67,8 @@ export default function ReportsPage() {
               <BarChart3 className="h-4 w-4 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-headline font-bold">R$ 4,12</div>
-              <p className="text-[10px] text-red-500 mt-1 font-bold">+2.1% devido à alta do diesel</p>
+              <div className="text-3xl font-headline font-bold">R$ 0,00</div>
+              <p className="text-[10px] text-muted-foreground mt-1 font-bold">Aguardando dados</p>
             </CardContent>
           </Card>
           <Card className="glass-card">
@@ -85,7 +77,7 @@ export default function ReportsPage() {
               <Calendar className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-headline font-bold">1.240h</div>
+              <div className="text-3xl font-headline font-bold">0h</div>
               <p className="text-[10px] text-muted-foreground mt-1">Total acumulado este mês</p>
             </CardContent>
           </Card>
@@ -95,21 +87,8 @@ export default function ReportsPage() {
           <CardHeader>
             <CardTitle className="text-xl font-headline font-bold">Evolução Operacional</CardTitle>
           </CardHeader>
-          <CardContent className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" stroke="#666" fontSize={12} axisLine={false} tickLine={false} />
-                <YAxis stroke="#666" fontSize={12} axisLine={false} tickLine={false} />
-                <Tooltip 
-                  cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                />
-                <Legend />
-                <Bar dataKey="viagens" name="Total Viagens" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="custos" name="Custos Operacionais" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="h-[400px] flex items-center justify-center text-muted-foreground text-xs uppercase font-bold">
+            Sem dados operacionais registrados
           </CardContent>
         </Card>
       </div>

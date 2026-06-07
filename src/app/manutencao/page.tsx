@@ -36,14 +36,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
-const maintenanceRecords = [
-  { id: 1, truck: "ABC-1234", type: "Corretiva", service: "Troca de Embreagem", status: "Em Execução", date: "Hoje", cost: "R$ 4.200" },
-  { id: 2, truck: "XYZ-9876", type: "Preventiva", service: "Revisão 100k", status: "Agendada", date: "22/05", cost: "Est. R$ 2.500" },
-  { id: 3, truck: "KLT-4433", type: "Corretiva", service: "Reparo Elétrico", status: "Concluída", date: "15/05", cost: "R$ 850" },
-]
-
 export default function MaintenancePage() {
   const [isOpen, setIsOpen] = useState(false)
+  const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]) // Começa vazio para testes
 
   const handleScheduleMaintenance = (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,8 +73,7 @@ export default function MaintenancePage() {
                       <SelectValue placeholder="Selecione o caminhão" />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-white/10 text-white">
-                      <SelectItem value="abc">ABC-1234 (Volvo FH 540)</SelectItem>
-                      <SelectItem value="xyz">XYZ-9876 (Scania R 450)</SelectItem>
+                      <SelectItem value="none">Nenhum veículo cadastrado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -127,7 +121,7 @@ export default function MaintenancePage() {
                   <AlertTriangle className="h-5 w-5" />
                 </div>
                 <p className="text-xs text-muted-foreground uppercase font-bold">Urgentes</p>
-                <p className="text-2xl font-headline font-bold">03</p>
+                <p className="text-2xl font-headline font-bold">0</p>
               </div>
             </CardContent>
           </Card>
@@ -138,7 +132,7 @@ export default function MaintenancePage() {
                   <Clock className="h-5 w-5" />
                 </div>
                 <p className="text-xs text-muted-foreground uppercase font-bold">Agendadas</p>
-                <p className="text-2xl font-headline font-bold">08</p>
+                <p className="text-2xl font-headline font-bold">0</p>
               </div>
             </CardContent>
           </Card>
@@ -149,7 +143,7 @@ export default function MaintenancePage() {
                   <CheckCircle2 className="h-5 w-5" />
                 </div>
                 <p className="text-xs text-muted-foreground uppercase font-bold">Concluídas (Mês)</p>
-                <p className="text-2xl font-headline font-bold">12</p>
+                <p className="text-2xl font-headline font-bold">0</p>
               </div>
             </CardContent>
           </Card>
@@ -160,7 +154,7 @@ export default function MaintenancePage() {
                   <Wrench className="h-5 w-5" />
                 </div>
                 <p className="text-xs text-muted-foreground uppercase font-bold">Investimento</p>
-                <p className="text-2xl font-headline font-bold">R$ 24k</p>
+                <p className="text-2xl font-headline font-bold">R$ 0</p>
               </div>
             </CardContent>
           </Card>
@@ -185,7 +179,11 @@ export default function MaintenancePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {maintenanceRecords.map((record) => (
+              {maintenanceRecords.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">Nenhum registro de manutenção.</TableCell>
+                </TableRow>
+              ) : maintenanceRecords.map((record) => (
                 <TableRow key={record.id} className="border-white/5 hover:bg-white/5 transition-colors">
                   <TableCell className="font-bold text-primary">{record.truck}</TableCell>
                   <TableCell>

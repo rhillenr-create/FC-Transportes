@@ -1,6 +1,7 @@
 
 "use client"
 
+import { useState } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,14 +16,9 @@ import {
 } from "@/components/ui/table"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-const drivers = [
-  { id: 1, name: "João Silva", cnh: "123456789", cat: "AE", status: "Em Viagem", score: 4.8 },
-  { id: 2, name: "Pedro Santos", cnh: "987654321", cat: "E", status: "Disponível", score: 4.9 },
-  { id: 3, name: "Carlos Lima", cnh: "456123789", cat: "D", status: "Folga", score: 4.5 },
-  { id: 4, name: "Roberto Souza", cnh: "741852963", cat: "AE", status: "Disponível", score: 5.0 },
-]
-
 export default function DriversPage() {
+  const [drivers, setDrivers] = useState<any[]>([]) // Começa vazio para testes
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -55,7 +51,11 @@ export default function DriversPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {drivers.map((driver) => (
+              {drivers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">Nenhum motorista cadastrado.</TableCell>
+                </TableRow>
+              ) : drivers.map((driver) => (
                 <TableRow key={driver.id} className="border-white/5 hover:bg-white/5 transition-colors">
                   <TableCell>
                     <div className="flex items-center gap-3">

@@ -41,21 +41,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
-const dataPie = [
-  { name: 'Combustível', value: 45 },
-  { name: 'Manutenção', value: 20 },
-  { name: 'Motoristas', value: 25 },
-  { name: 'Outros', value: 10 },
-]
-
 const COLORS = ['#00FF88', '#CCFF00', '#00BFFF', '#FF4444']
-
-const cashflowData = [
-  { month: 'Jan', entries: 80000, exits: 45000 },
-  { month: 'Fev', entries: 95000, exits: 52000 },
-  { month: 'Mar', entries: 88000, exits: 48000 },
-  { month: 'Abr', entries: 110000, exits: 61000 },
-]
 
 export default function FinancePage() {
   const [isOpen, setIsOpen] = useState(false)
@@ -162,10 +148,10 @@ export default function FinancePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[
-            { label: "Receitas Totais", value: "R$ 373.000", icon: TrendingUp, color: "text-primary", bg: "bg-primary/10", trend: "+12%" },
-            { label: "Despesas Operacionais", value: "R$ 206.000", icon: TrendingDown, color: "text-red-500", bg: "bg-red-500/10", trend: "+5%" },
-            { label: "Saldo em Caixa", value: "R$ 167.000", icon: Wallet, color: "text-accent", bg: "bg-accent/10", trend: "+18%" },
-            { label: "Margem Líquida", value: "44.7%", icon: DollarSign, color: "text-blue-400", bg: "bg-blue-400/10", trend: "+2.4%" },
+            { label: "Receitas Totais", value: "R$ 0", icon: TrendingUp, color: "text-primary", bg: "bg-primary/10", trend: "0%" },
+            { label: "Despesas Operacionais", value: "R$ 0", icon: TrendingDown, color: "text-red-500", bg: "bg-red-500/10", trend: "0%" },
+            { label: "Saldo em Caixa", value: "R$ 0", icon: Wallet, color: "text-accent", bg: "bg-accent/10", trend: "0%" },
+            { label: "Margem Líquida", value: "0%", icon: DollarSign, color: "text-blue-400", bg: "bg-blue-400/10", trend: "0%" },
           ].map((stat, i) => (
             <div key={i} className="glass-card rounded-[2rem] p-8 group hover:neon-border transition-all">
               <div className="flex items-center gap-4 mb-4">
@@ -193,28 +179,8 @@ export default function FinancePage() {
                 <button className="text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-1">Detalhar <ChevronRight className="h-3 w-3" /></button>
               </div>
             </CardHeader>
-            <CardContent className="h-[350px] p-0 flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={dataPie}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={80}
-                    outerRadius={110}
-                    paddingAngle={8}
-                    dataKey="value"
-                  >
-                    {dataPie.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'rgba(10,12,11,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px' }}
-                  />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                </PieChart>
-              </ResponsiveContainer>
+            <CardContent className="h-[350px] p-0 flex items-center justify-center text-muted-foreground text-xs uppercase font-bold">
+              Sem dados disponíveis
             </CardContent>
           </Card>
 
@@ -228,20 +194,8 @@ export default function FinancePage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="h-[350px] p-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={cashflowData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="month" stroke="#555" fontSize={11} axisLine={false} tickLine={false} />
-                  <YAxis stroke="#555" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${v/1000}k`} />
-                  <Tooltip 
-                    cursor={{fill: 'rgba(255,255,255,0.02)'}}
-                    contentStyle={{ backgroundColor: 'rgba(10,12,11,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px' }}
-                  />
-                  <Bar dataKey="entries" name="Entradas" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} barSize={40} />
-                  <Bar dataKey="exits" name="Saídas" fill="#FF4444" radius={[6, 6, 0, 0]} barSize={40} />
-                </BarChart>
-              </ResponsiveContainer>
+            <CardContent className="h-[350px] p-0 flex items-center justify-center text-muted-foreground text-xs uppercase font-bold">
+              Aguardando novas transações
             </CardContent>
           </Card>
         </div>

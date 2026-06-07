@@ -33,20 +33,20 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
-
-const fuelLogs = [
-  { id: 1, truck: "ABC-1234", date: "18/05/2024", liters: "320L", type: "S10", station: "Posto Graal", total: "R$ 1.856,00" },
-  { id: 2, truck: "XYZ-9876", date: "17/05/2024", liters: "450L", type: "S500", station: "Posto Shell", total: "R$ 2.475,00" },
-  { id: 3, truck: "KLT-4433", date: "16/05/2024", liters: "280L", type: "S10", station: "Ipiranga", total: "R$ 1.624,00" },
-]
+import { useToast } from "@/hooks/use-toast"
 
 export default function FuelPage() {
   const [isOpen, setIsOpen] = useState(false)
+  const [fuelLogs, setFuelLogs] = useState<any[]>([]) // Começa vazio para testes
+  const { toast } = useToast()
 
   const handleAddFuel = (e: React.FormEvent) => {
     e.preventDefault()
     setIsOpen(false)
+    toast({
+      title: "Registro Salvo",
+      description: "O abastecimento foi registrado com sucesso."
+    })
   }
 
   return (
@@ -77,8 +77,7 @@ export default function FuelPage() {
                       <SelectValue placeholder="Selecione o caminhão" />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-white/10 text-white">
-                      <SelectItem value="abc">ABC-1234 (Volvo FH 540)</SelectItem>
-                      <SelectItem value="xyz">XYZ-9876 (Scania R 450)</SelectItem>
+                      <SelectItem value="abc">ABC-1234</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -132,7 +131,7 @@ export default function FuelPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Litros (Mês)</p>
-                <p className="text-2xl font-headline font-bold">12.450 L</p>
+                <p className="text-2xl font-headline font-bold">0 L</p>
               </div>
             </CardContent>
           </Card>
@@ -143,7 +142,7 @@ export default function FuelPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Média Frota</p>
-                <p className="text-2xl font-headline font-bold">3.1 km/L</p>
+                <p className="text-2xl font-headline font-bold">0 km/L</p>
               </div>
             </CardContent>
           </Card>
@@ -154,7 +153,7 @@ export default function FuelPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Gasto Total (Mês)</p>
-                <p className="text-2xl font-headline font-bold">R$ 72.210</p>
+                <p className="text-2xl font-headline font-bold">R$ 0</p>
               </div>
             </CardContent>
           </Card>
@@ -183,7 +182,11 @@ export default function FuelPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {fuelLogs.map((log) => (
+              {fuelLogs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">Nenhum registro de abastecimento encontrado.</TableCell>
+                </TableRow>
+              ) : fuelLogs.map((log) => (
                 <TableRow key={log.id} className="border-white/5 hover:bg-white/5 transition-colors">
                   <TableCell className="font-bold text-primary">{log.truck}</TableCell>
                   <TableCell>

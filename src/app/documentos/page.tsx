@@ -19,15 +19,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 
-const documents = [
-  { id: 1, name: "CRLV - Volvo FH 540 (ABC-1234)", type: "Veículo", expiry: "20/05/2025", status: "Próximo ao Vencimento" },
-  { id: 2, name: "Apólice de Seguro Porto - Frota", type: "Seguros", expiry: "15/12/2025", status: "Vigente" },
-  { id: 3, name: "Licenciamento Anual 2024 - Todos", type: "Legal", expiry: "30/11/2025", status: "Vigente" },
-  { id: 4, name: "Exame Toxicológico - João Silva", type: "Motorista", expiry: "12/04/2025", status: "Vencido" },
-]
-
 export default function DocumentsPage() {
   const [isOpen, setIsOpen] = useState(false)
+  const [documents, setDocuments] = useState<any[]>([]) // Começa vazio para testes
   const { toast } = useToast()
 
   const handleAddDocument = (e: React.FormEvent) => {
@@ -113,7 +107,11 @@ export default function DocumentsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20 md:pb-0">
-          {documents.map((doc) => (
+          {documents.length === 0 ? (
+            <div className="col-span-full py-20 text-center text-muted-foreground font-bold uppercase tracking-widest border border-dashed border-white/10 rounded-[2rem]">
+              Nenhum documento arquivado
+            </div>
+          ) : documents.map((doc) => (
             <Card key={doc.id} className="glass-card group hover:neon-border transition-all duration-300 rounded-[2rem]">
               <CardContent className="p-8">
                 <div className="flex items-start justify-between">
