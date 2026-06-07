@@ -13,6 +13,20 @@
       },
       "required": ["uid", "email"]
     },
+    "Driver": {
+      "title": "Motorista",
+      "description": "Cadastro de condutores da frota.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nome completo do motorista" },
+        "cnh": { "type": "string", "description": "Número da CNH" },
+        "category": { "type": "string", "description": "Categoria da CNH (D, E, etc)" },
+        "status": { "type": "string", "enum": ["Disponível", "Em Viagem", "Inativo"] },
+        "score": { "type": "number", "description": "Pontuação de performance (0-5)" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "cnh", "category"]
+    },
     "Truck": {
       "title": "Veículo",
       "description": "Dados técnicos e operacionais de um caminhão da frota.",
@@ -98,6 +112,10 @@
     "/users/{userId}": {
       "schema": "#/backend/entities/UserProfile",
       "description": "Coleção de perfis de usuários do sistema"
+    },
+    "/drivers/{driverId}": {
+      "schema": "#/backend/entities/Driver",
+      "description": "Cadastro de motoristas"
     },
     "/trucks/{truckId}": {
       "schema": "#/backend/entities/Truck",
