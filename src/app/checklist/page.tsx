@@ -10,18 +10,15 @@ import {
   Camera, 
   CheckCircle2, 
   AlertCircle,
-  Loader2,
   Wrench,
-  Stethoscope,
   ChevronLeft,
   X,
   CheckCircle,
-  Image as ImageIcon
+  FileText
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { intelligentMaintenanceDiagnostics } from "@/ai/flows/intelligent-maintenance-diagnostics"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 
@@ -41,8 +38,7 @@ export default function ChecklistPage() {
   const [results, setResults] = useState<Record<string, 'ok' | 'issue'>>({})
   const [observations, setObservations] = useState<Record<string, string>>({})
   const [photos, setPhotos] = useState<Record<string, string[]>>({})
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [aiAnalysis, setAiAnalysis] = useState<any>(null)
+  const [summary, setSummary] = useState<{label: string, obs: string}[]>([])
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const handleStatusChange = (id: string, status: 'ok' | 'issue') => {
@@ -92,49 +88,31 @@ export default function ChecklistPage() {
     }))
   }
 
-  const handleFinalize = async () => {
-    // Validar se todos os itens foram preenchidos
+  const handleFinalize = () => {
     const missingItems = checklistItems.filter(item => !results[item.id])
     if (missingItems.length > 0) {
       toast({
         variant: "destructive",
         title: "Checklist Incompleto",
-        description: `Por favor, responda todos os itens antes de finalizar. Faltam: ${missingItems.length} item(ns).`
+        description: `Por favor, responda todos os itens antes de finalizar.`
       })
       return
     }
 
-    setIsAnalyzing(true)
+    const issuesFound = checklistItems
+      .filter(item => results[item.id] === 'issue')
+      .map(item => ({
+        label: item.label,
+        obs: observations[item.id] || "Sem observações detalhadas."
+      }))
+
+    setSummary(issuesFound)
+    setStep('result')
     
-    const log = checklistItems.map(item => {
-      const status = results[item.id] || 'N/A'
-      const obs = observations[item.id] ? ` (Obs: ${observations[item.id]})` : ''
-      return `${item.label}: ${status}${obs}`
-    }).join('\n')
-
-    const allPhotoUris = Object.values(photos).flat()
-
-    try {
-      const diagnosis = await intelligentMaintenanceDiagnostics({
-        checklistLog: log,
-        photoDataUris: allPhotoUris.length > 0 ? allPhotoUris : undefined
-      })
-      setAiAnalysis(diagnosis)
-      setStep('result')
-      toast({
-        title: "Sucesso!",
-        description: "Diagnóstico gerado com sucesso pela nossa IA."
-      })
-    } catch (error) {
-      console.error("Erro AI:", error)
-      toast({
-        variant: "destructive",
-        title: "Erro na análise",
-        description: "Ocorreu uma falha ao processar o diagnóstico. Tente novamente."
-      })
-    } finally {
-      setIsAnalyzing(false)
-    }
+    toast({
+      title: "Sucesso!",
+      description: "Checklist finalizado e salvo com sucesso."
+    })
   }
 
   if (step === 'start') {
@@ -147,7 +125,7 @@ export default function ChecklistPage() {
           <div className="space-y-4">
             <h1 className="text-3xl md:text-5xl font-headline font-bold text-white tracking-tighter">Inspeção Pré-Viagem</h1>
             <p className="text-muted-foreground text-sm md:text-lg max-w-xl mx-auto uppercase tracking-widest font-medium">
-              Checklist obrigatório para segurança operacional.
+              Checklist operacional de segurança.
             </p>
           </div>
           <Button size="lg" className="h-16 px-12 text-lg font-bold neon-glow rounded-2xl w-full md:w-auto" onClick={() => setStep('form')}>
@@ -164,55 +142,60 @@ export default function ChecklistPage() {
         <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 animate-in slide-in-from-bottom-6 duration-700 px-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <h2 className="text-2xl md:text-3xl font-headline font-bold text-white flex items-center gap-3">
-              <Stethoscope className="text-primary h-7 w-7 md:h-8 md:w-8" />
-              Diagnóstico IA
+              <FileText className="text-primary h-7 w-7 md:h-8 md:w-8" />
+              Resumo da Inspeção
             </h2>
             <Button variant="outline" className="w-full md:w-auto rounded-xl border-white/10" onClick={() => {
               setStep('start')
               setResults({})
               setObservations({})
               setPhotos({})
-              setAiAnalysis(null)
+              setSummary([])
             }}>NOVA INSPEÇÃO</Button>
           </div>
 
           <Card className="bg-card border-white/5 overflow-hidden rounded-[2.5rem]">
-             <div className={cn(
-               "h-2.5",
-               aiAnalysis?.severity === 'critical' ? "bg-red-500" :
-               aiAnalysis?.severity === 'high' ? "bg-orange-500" :
-               aiAnalysis?.severity === 'medium' ? "bg-yellow-500" : "bg-primary"
-             )} />
+             <div className={cn("h-2.5", summary.length > 0 ? "bg-orange-500" : "bg-primary")} />
              <CardContent className="p-6 md:p-10 space-y-8">
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                 <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Status de Urgência</h3>
+                 <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Status da Frota</h3>
                  <span className={cn(
                    "px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest text-center",
-                   aiAnalysis?.severity === 'critical' ? "bg-red-500 text-white" :
-                   aiAnalysis?.severity === 'high' ? "bg-orange-500 text-white" :
-                   aiAnalysis?.severity === 'medium' ? "bg-yellow-500 text-black" : "bg-primary text-black"
+                   summary.length > 0 ? "bg-orange-500 text-white" : "bg-primary text-black"
                  )}>
-                   {aiAnalysis?.severity || 'LOW'}
+                   {summary.length > 0 ? 'ATENÇÃO NECESSÁRIA' : 'VEÍCULO LIBERADO'}
                  </span>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-                 <div className="space-y-4">
-                   <h4 className="font-headline font-bold text-lg text-primary flex items-center gap-2">
-                     <AlertCircle className="h-5 w-5" />
-                     Insights
-                   </h4>
-                   <p className="text-muted-foreground leading-relaxed text-sm md:text-base whitespace-pre-line">{aiAnalysis?.diagnosticInsights}</p>
-                 </div>
-
-                 <div className="space-y-4">
-                   <h4 className="font-headline font-bold text-lg text-accent flex items-center gap-2">
-                     <Wrench className="h-5 w-5" />
-                     Manutenção
-                   </h4>
-                   <p className="text-muted-foreground leading-relaxed text-sm md:text-base whitespace-pre-line">{aiAnalysis?.maintenanceRecommendations}</p>
-                 </div>
+               <div className="space-y-6">
+                 <h4 className="font-headline font-bold text-lg text-white flex items-center gap-2">
+                   <AlertCircle className="h-5 w-5 text-primary" />
+                   Itens com Observação
+                 </h4>
+                 
+                 {summary.length === 0 ? (
+                   <p className="text-muted-foreground italic">Nenhum problema identificado nesta inspeção. Todos os componentes estão em conformidade.</p>
+                 ) : (
+                   <div className="grid gap-4">
+                     {summary.map((item, i) => (
+                       <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
+                         <p className="text-primary font-bold uppercase text-xs">{item.label}</p>
+                         <p className="text-sm text-white/80">{item.obs}</p>
+                       </div>
+                     ))}
+                   </div>
+                 )}
                </div>
+
+               {summary.length > 0 && (
+                 <div className="pt-6 border-t border-white/5">
+                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest mb-4">Recomendação Operacional</p>
+                    <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-xl flex items-start gap-3">
+                       <Wrench className="h-5 w-5 text-orange-500 shrink-0" />
+                       <p className="text-sm text-orange-200">Encaminhar veículo para conferência mecânica antes de iniciar a rota de longa distância devido aos itens assinalados.</p>
+                    </div>
+                 </div>
+               )}
              </CardContent>
           </Card>
         </div>
@@ -232,7 +215,7 @@ export default function ChecklistPage() {
             </Button>
             <div>
               <h2 className="text-2xl md:text-3xl font-headline font-bold text-white tracking-tight">Formulário de Inspeção</h2>
-              <p className="text-muted-foreground text-xs uppercase tracking-widest font-medium">Verificação detalhada de componentes</p>
+              <p className="text-muted-foreground text-xs uppercase tracking-widest font-medium">Verificação de componentes e ativos</p>
             </div>
           </div>
           
@@ -287,9 +270,9 @@ export default function ChecklistPage() {
                 {results[item.id] === 'issue' && (
                   <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="space-y-2">
-                      <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-[0.2em] ml-1">Observações do Motorista</Label>
+                      <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-[0.2em] ml-1">Relatório de Avaria</Label>
                       <Textarea 
-                        placeholder="Descreva o problema identificado..." 
+                        placeholder="Descreva o problema identificado pelo motorista..." 
                         className="bg-white/5 border-white/10 rounded-2xl min-h-[100px] md:min-h-[120px] p-4 text-sm"
                         value={observations[item.id] || ''}
                         onChange={(e) => setObservations(prev => ({ ...prev, [item.id]: e.target.value }))}
@@ -325,7 +308,7 @@ export default function ChecklistPage() {
                         onClick={() => fileInputRefs.current[item.id]?.click()}
                       >
                         <Camera className="w-4 h-4 mr-2" />
-                        ANEXAR EVIDÊNCIA FOTOGRÁFICA
+                        ANEXAR FOTO DA AVARIA
                       </Button>
                     </div>
                   </div>
@@ -343,16 +326,8 @@ export default function ChecklistPage() {
               allAnswered ? "neon-glow bg-primary text-primary-foreground" : "bg-white/5 text-muted-foreground grayscale"
             )}
             onClick={handleFinalize}
-            disabled={isAnalyzing}
           >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="animate-spin mr-3 h-6 w-6" />
-                PROCESSANDO IA...
-              </>
-            ) : (
-              "FINALIZAR INSPEÇÃO"
-            )}
+            FINALIZAR INSPEÇÃO
           </Button>
         </div>
       </div>
