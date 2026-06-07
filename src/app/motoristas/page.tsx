@@ -13,6 +13,7 @@ import {
   Star, 
   ShieldCheck, 
   Loader2,
+  Edit,
   ChevronLeft
 } from "lucide-react"
 import {
@@ -35,7 +36,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
-import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc } from "firebase/firestore"
+import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
@@ -48,6 +49,7 @@ export default function DriversPage() {
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -68,40 +70,81 @@ export default function DriversPage() {
   }, [db])
   const { data: drivers, loading } = useCollection(driversQuery)
 
-  const handleAddDriver = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setEditingId(null)
+    setFormData({
+      name: "",
+      cnh: "",
+      category: "E",
+      status: "Disponível",
+      score: 5.0
+    })
+  }
+
+  const handleEdit = (driver: any) => {
+    setEditingId(driver.id)
+    setFormData({
+      name: driver.name,
+      cnh: driver.cnh,
+      category: driver.category,
+      status: driver.status,
+      score: driver.score
+    })
+    setIsOpen(true)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
     const payload = {
       ...formData,
       score: Number(formData.score),
-      createdAt: serverTimestamp()
+      updatedAt: serverTimestamp()
     }
 
-    addDoc(collection(db, "drivers"), payload)
-      .then(() => {
-        setIsOpen(false)
-        setFormData({
-          name: "",
-          cnh: "",
-          category: "E",
-          status: "Disponível",
-          score: 5.0
+    if (editingId) {
+      // Update
+      updateDoc(doc(db, "drivers", editingId), payload)
+        .then(() => {
+          setIsOpen(false)
+          resetForm()
+          toast({
+            title: "Cadastro Atualizado",
+            description: "Os dados do motorista foram atualizados com sucesso."
+          })
         })
-        toast({
-          title: "Motorista Cadastrado",
-          description: "O condutor foi adicionado ao sistema com sucesso."
+        .catch(async () => {
+          const permissionError = new FirestorePermissionError({
+            path: `drivers/${editingId}`,
+            operation: "update",
+            requestResourceData: payload
+          })
+          errorEmitter.emit("permission-error", permissionError)
         })
-      })
-      .catch(async () => {
-        const permissionError = new FirestorePermissionError({
-          path: "drivers",
-          operation: "create",
-          requestResourceData: payload
+        .finally(() => setIsSubmitting(false))
+    } else {
+      // Create
+      const newPayload = { ...payload, createdAt: serverTimestamp() }
+      addDoc(collection(db, "drivers"), newPayload)
+        .then(() => {
+          setIsOpen(false)
+          resetForm()
+          toast({
+            title: "Motorista Cadastrado",
+            description: "O condutor foi adicionado ao sistema com sucesso."
+          })
         })
-        errorEmitter.emit("permission-error", permissionError)
-      })
-      .finally(() => setIsSubmitting(false))
+        .catch(async () => {
+          const permissionError = new FirestorePermissionError({
+            path: "drivers",
+            operation: "create",
+            requestResourceData: newPayload
+          })
+          errorEmitter.emit("permission-error", permissionError)
+        })
+        .finally(() => setIsSubmitting(false))
+    }
   }
 
   const handleDeleteDriver = (id: string) => {
@@ -137,7 +180,7 @@ export default function DriversPage() {
             <p className="text-muted-foreground text-sm uppercase tracking-widest font-medium">Controle de condutores e performance operacional</p>
           </div>
           
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <Dialog open={isOpen} onOpenChange={(open) => { if (!open) resetForm(); setIsOpen(open); }}>
             <DialogTrigger asChild>
               <Button className="neon-glow font-bold h-12 px-8 rounded-xl bg-primary text-primary-foreground">
                 <Plus className="w-5 h-5 mr-2" />
@@ -146,9 +189,11 @@ export default function DriversPage() {
             </DialogTrigger>
             <DialogContent className="bg-card border-white/10 text-white max-w-xl rounded-[2rem]">
               <DialogHeader>
-                <DialogTitle className="text-2xl font-headline font-bold text-primary">Novo Cadastro de Motorista</DialogTitle>
+                <DialogTitle className="text-2xl font-headline font-bold text-primary">
+                  {editingId ? "Editar Cadastro" : "Novo Cadastro de Motorista"}
+                </DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleAddDriver} className="space-y-6 py-4">
+              <form onSubmit={handleSubmit} className="space-y-6 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome Completo</Label>
                   <Input 
@@ -190,13 +235,14 @@ export default function DriversPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Status Inicial</Label>
+                    <Label>Status Atual</Label>
                     <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
                       <SelectTrigger className="bg-white/5 border-white/10 text-white">
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-white/10 text-white">
                         <SelectItem value="Disponível">Disponível</SelectItem>
+                        <SelectItem value="Em Viagem">Em Viagem</SelectItem>
                         <SelectItem value="Inativo">Inativo</SelectItem>
                       </SelectContent>
                     </Select>
@@ -220,7 +266,7 @@ export default function DriversPage() {
                   <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-white">Cancelar</Button>
                   <Button type="submit" disabled={isSubmitting} className="bg-primary text-primary-foreground neon-glow font-bold px-8">
                     {isSubmitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
-                    SALVAR CADASTRO
+                    {editingId ? "SALVAR ALTERAÇÕES" : "SALVAR CADASTRO"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -301,14 +347,24 @@ export default function DriversPage() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right pr-8">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => handleDeleteDriver(driver.id)}
-                        className="h-10 w-10 rounded-xl hover:bg-white/10 hover:text-red-500"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleEdit(driver)}
+                          className="h-10 w-10 rounded-xl hover:bg-white/10 hover:text-primary transition-colors"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleDeleteDriver(driver.id)}
+                          className="h-10 w-10 rounded-xl hover:bg-white/10 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
