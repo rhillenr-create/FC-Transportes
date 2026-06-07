@@ -226,7 +226,13 @@ export default function FleetPage() {
                     <SelectContent className="bg-card border-white/10 text-white">
                       <SelectItem value="heavy">Caminhão Pesado (6x4)</SelectItem>
                       <SelectItem value="medium">Caminhão Médio (4x2)</SelectItem>
+                      <SelectItem value="vlc">Veículo Leve de Carga (VLC)</SelectItem>
+                      <SelectItem value="bitrem">Bitrem / Rodotrem</SelectItem>
                       <SelectItem value="trailer">Carreta Graneleira</SelectItem>
+                      <SelectItem value="carreta_bau">Carreta Baú</SelectItem>
+                      <SelectItem value="carreta_sider">Carreta Sider</SelectItem>
+                      <SelectItem value="basculante">Caminhão Basculante</SelectItem>
+                      <SelectItem value="frigorifico">Carreta Frigorífica</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
