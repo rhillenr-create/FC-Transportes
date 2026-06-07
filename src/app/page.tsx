@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -23,7 +24,6 @@ export default function LoginPage() {
 
   const logoImage = PlaceHolderImages.find(img => img.id === 'app-logo')
 
-  // Redireciona se o usuário já estiver logado
   useEffect(() => {
     if (!auth) return
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -60,23 +60,19 @@ export default function LoginPage() {
         await createUserWithEmailAndPassword(auth, email, password)
         toast({
           title: "Conta criada com sucesso!",
-          description: "Bem-vindo ao sistema FC Frota. Você já está logado."
+          description: "Bem-vindo ao sistema FC Frota."
         })
-        // O useEffect acima cuidará do redirecionamento
       } else {
         await signInWithEmailAndPassword(auth, email, password)
         router.push("/dashboard")
       }
     } catch (error: any) {
-      console.error("Firebase Auth Error:", error)
-      
       let title = isRegistering ? "Erro no cadastro" : "Erro no login"
       let message = "Ocorreu um erro inesperado. Tente novamente."
 
-      // Tratamento de erros comuns do Firebase Auth
       switch (error.code) {
         case 'auth/invalid-api-key':
-          message = "Configuração do servidor inválida (API Key). Verifique o console do Firebase."
+          message = "Configuração do servidor inválida (API Key)."
           break
         case 'auth/user-not-found':
         case 'auth/wrong-password':
@@ -84,7 +80,8 @@ export default function LoginPage() {
           message = "E-mail ou senha incorretos."
           break
         case 'auth/email-already-in-use':
-          message = "Este e-mail já está sendo utilizado por outra conta."
+          message = "Este e-mail já está cadastrado. Por favor, faça login."
+          setIsRegistering(false) // Muda automaticamente para o modo login
           break
         case 'auth/weak-password':
           message = "A senha deve ter pelo menos 6 caracteres."
@@ -93,7 +90,7 @@ export default function LoginPage() {
           message = "Falha de conexão. Verifique sua internet."
           break
         case 'auth/too-many-requests':
-          message = "Muitas tentativas malsucedidas. Tente novamente mais tarde."
+          message = "Muitas tentativas. Tente novamente mais tarde."
           break
       }
       
@@ -113,7 +110,7 @@ export default function LoginPage() {
         <div className="text-center space-y-6">
           <div className="inline-flex items-center justify-center bg-white/5 p-4 rounded-[2rem] border border-primary/30 neon-glow relative w-28 h-28 mx-auto overflow-hidden">
             <Image 
-              src={logoImage?.imageUrl || "https://picsum.photos/seed/fclogo/200/200"} 
+              src={logoImage?.imageUrl || "https://picsum.photos/seed/truck1/200/200"} 
               alt={logoImage?.description || "FC Logo"} 
               fill 
               className="object-contain p-3"
