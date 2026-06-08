@@ -8,6 +8,15 @@ import { FirebaseErrorListener } from "@/components/FirebaseErrorListener";
 export const metadata: Metadata = {
   title: 'FC Frota | Gestão Inteligente de Logística',
   description: 'Sistema premium de gestão de frotas e transporte para FC Construções e Transportes.',
+  icons: {
+    icon: '/icon.png',
+    shortcut: '/icon.png',
+    apple: '/icon.png',
+    other: [
+      { rel: 'manifest', url: '/manifest.json' },
+    ],
+  },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

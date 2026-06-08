@@ -1,0 +1,16 @@
+{
+  "name": "FC Frota | Gestão Inteligente de Logística",
+  "short_name": "FC Frota",
+  "description": "Sistema premium de gestão de frotas e transporte para FC Construções e Transportes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
