@@ -30,6 +30,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  unoptimized: true,
+  generateEtags: false,
 };
 
 export default nextConfig;
