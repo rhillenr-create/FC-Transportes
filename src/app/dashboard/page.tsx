@@ -113,11 +113,11 @@ export default function DashboardPage() {
           </div>
           <div className="relative hidden lg:block w-[300px] lg:w-[400px] h-[80px] md:h-[100px] -mt-6 lg:-mt-10">
              <Image 
-               src="https://picsum.photos/seed/truck1/600/400" 
-               alt="Hero Truck" 
+               src="/icon.png" 
+               alt="Ícone FC" 
                fill 
                className="object-contain drop-shadow-[0_20px_50px_rgba(0,255,136,0.3)]"
-               data-ai-hint="black truck neon"
+               data-ai-hint="fc icon"
              />
           </div>
         </div>

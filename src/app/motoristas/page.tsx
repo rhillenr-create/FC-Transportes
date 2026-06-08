@@ -336,7 +336,7 @@ export default function DriversPage() {
                     <TableCell className="pl-8">
                       <div className="flex items-center gap-4">
                         <Avatar className="h-12 w-12 border border-white/10">
-                          <AvatarImage src={`https://picsum.photos/seed/${driver.id}/100`} />
+                          <AvatarImage src="/icon.png" />
                           <AvatarFallback className="bg-primary/10 text-primary font-bold">{driver.name[0]}</AvatarFallback>
                         </Avatar>
                         <div>

@@ -63,7 +63,7 @@ export function Sidebar({ isMobile }: SidebarProps) {
       <div className="p-8 lg:p-10 flex flex-col items-center gap-4">
         <div className="relative w-24 h-16 lg:w-28 lg:h-20 group cursor-pointer">
           <Image 
-            src={logoImage?.imageUrl || "https://picsum.photos/seed/fclogo/200/200"} 
+            src={logoImage?.imageUrl || "/icon.png"} 
             alt={logoImage?.description || "FC Logo"} 
             fill 
             className="object-contain transition-transform group-hover:scale-110 duration-500"
