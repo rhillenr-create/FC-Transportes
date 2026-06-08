@@ -106,7 +106,6 @@ export default function ReportsPage() {
               {isExporting ? "GERANDO..." : "EXPORTAR PDF"}
             </Button>
           </div>
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="glass-card rounded-[2rem] group hover:neon-border transition-all">
